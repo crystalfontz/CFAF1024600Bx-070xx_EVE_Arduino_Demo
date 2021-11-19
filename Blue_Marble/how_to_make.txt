@@ -1,0 +1,15 @@
+Edit in photoshop:
+  save as transparent 24-bit PNG (not indexed)
+  create or empty Asset_Builder_Output directory
+
+EVE Asset Builder https://brtchip.com/eve-toolchains/
+  image converter
+  select PNG as input file
+  select output path of Asset_Builder_Output
+  select FT81X
+  Output Format ARGB1555
+  un-check "compressed" (on uSD so who cares)
+  click "Convert"
+
+Rename Blue_Marble_64x64_64x64_ARGB1555.raw to BLUEMARB.RAW
+Copy BLUEMARB.RAW to uSD card

@@ -1,0 +1,54 @@
+Edit in photoshop
+  save layered PSD
+  hide white background
+  image, mode, indexed, 4 color + transparency
+  save as PNG
+  exit, don't overwrite layered PSD
+
+================================================================================
+
+To make transparent ARGB2 using EVE Asset Builder for FLASH
+  launch EVE Asset Builder
+  image converter
+  select PNG as input file
+  select output path ( + "Asset_Builder_Output")
+  select FT81X
+  Output Format ARGB2
+  Check compressed
+  click "Convert"
+
+Open converter web page:
+https://littlevgl.com/image-to-c-array
+
+Click into Asset_Builder_Output in windows explorer
+Drag the *.bin file onto "Choose File" button of web page
+Create a name
+Select Color Format "Raw"
+Output Format "C array"
+no dithering
+click Convert
+
+Use editor to move the size into the H file
+Use editor to move the data into the C file
+
+================================================================================
+
+To make trasnparent PNG for FLASH:
+  Open PNG in photoshop.
+  image, mode, RGB Color
+  Save as CFAM480128xx-039T_Splash_24bit_Transparent.png
+  
+Open converter web page:
+https://littlevgl.com/image-to-c-array
+
+Drag the CFAM480128xx-039T_Splash_24bit_Transparent.png file onto "Choose File" button of web page
+Create a name
+Select Color Format "Raw"
+Output Format "C array"
+no dithering
+click Convert
+
+Use editor to move the size into the H file
+Use editor to move the data into the C file
+
+================================================================================
