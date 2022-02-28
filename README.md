@@ -6,11 +6,11 @@ For more information on our full list of EVE displays, please click [here](https
 
 ## Display information
 7" EVE Displays\
-[CFAF1024600B0-070SC-A2](https://www.crystalfontz.com/product/CFAF1024600B0-070SC-A2) - Capacitive Touch
+[CFAF1024600B0-070SC-A1](https://www.crystalfontz.com/product/CFAF1024600B0-070SC-A1) - Capacitive Touch
 
  
 Full Functional Seeeduino Demo Kits for these products can be found here:  
-[CFAF1024600B0-070SC-A2-2](https://www.crystalfontz.com/product/CFAF1024600B0-070SC-A2-2) - Capacitive Touch Dev Kit
+[CFAF1024600B0-070SC-A1-2](https://www.crystalfontz.com/product/CFAF1024600B0-070SC-A1-2) - Capacitive Touch Dev Kit
 ## Navigating the Code
 
 To toggle on or off different demonstrations, some defines in "CFA10108_defines.h" can be changed.
