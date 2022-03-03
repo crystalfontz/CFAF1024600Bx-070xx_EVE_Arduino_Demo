@@ -4,7 +4,8 @@
 //
 // Drawing and helper routines for EVE accelerators.
 //
-//  2020-07-30 Brent A. Crosby / Crystalfontz
+// 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
+// https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
 //===========================================================================
 //This is free and unencumbered software released into the public domain.
 //
@@ -66,16 +67,24 @@ uint16_t _EVE_PrintFF(uint16_t FWol,
                       uint16_t Options,
                       const __FlashStringHelper *fmt, ... );
 #define EVE_PrintF(FWol,x,y,Font,Options,fmt,...) _EVE_PrintFF(FWol,x,y,Font,Options,F(fmt),##__VA_ARGS__)
+
+// Don't call _Start_Busy_Spinner_ScreenFF() directly, use EVE_Busy_SpinFF()
+// macro.
+uint16_t _Start_Busy_Spinner_ScreenFF(uint16_t FWol,
+                                      uint32_t Clear_Color,
+                                      uint32_t Text_Color,
+                                      uint32_t Spinner_Color,
+                                      const __FlashStringHelper *fmt, ... );
+#define EVE_Busy_SpinFF(FWol,Clear_Color,Text_Color,Spinner_Color,fmt,...) _Start_Busy_Spinner_ScreenFF(FWol,Clear_Color,Text_Color,Spinner_Color,F(fmt),##__VA_ARGS__)
                                        
-uint16_t Start_Busy_Spinner_Screen(uint16_t FWol,
-                                   uint32_t Clear_Color,
-                                   uint32_t Text_Color,
-                                   uint32_t Spinner_Color,
-                                   const __FlashStringHelper *message);
-uint16_t Stop_Busy_Spinner_Screen(uint16_t FWol,
+// Don't call _Stop_Busy_Spinner_ScreenFF() directly, use EVE_Busy_StopFF()
+// macro.
+uint16_t _Stop_Busy_Spinner_ScreenFF(uint16_t FWol,
                                   uint32_t Clear_Color,
                                   uint32_t Text_Color,
-                                  const __FlashStringHelper *message);
+                                  const __FlashStringHelper *fmt, ... );
+#define EVE_Busy_StopFF(FWol,Clear_Color,Text_Color,fmt,...) _Stop_Busy_Spinner_ScreenFF(FWol,Clear_Color,Text_Color,F(fmt),##__VA_ARGS__)
+
 uint16_t Calibrate_Touch(uint16_t FWol);
 uint16_t EVE_Load_PNG_to_RAM_G(uint16_t FWol,
                                const uint8_t *PNG_data,

@@ -1,6 +1,11 @@
 #ifndef __EVE_DEFINES_H__
 #define __EVE_DEFINES_H__
 
+// Don't change these
+#define DEBUG_NONE   (0)
+#define DEBUG_STATUS (1)
+#define DEBUG_GEEK   (2)
+
 /*
  * ============================================================================
  * History
@@ -42,7 +47,8 @@
  */
 
 //---------------------------------------------------------------------------
-//  2020-07-30 Brent A. Crosby / Crystalfontz
+// 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
+// https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
 //---------------------------------------------------------------------------
 //This is free and unencumbered software released into the public domain.
 //
@@ -109,10 +115,53 @@
 #define EVE_CLKINT                      (0x00000048UL) // = 72UL
 // Configure system clock
 #define EVE_CLKSEL                      (0x00000061UL) // = 97UL
+// Reset Pulse
+#define EVE_RST_PULSE                   (0x00000068UL) // = 104UL
+// Set pin drive strength
+#define EVE_PINDRIVE                    (0x00000070UL) // = 112UL
+
+//My defines for the clock source
+#define EVE_CLOCK_SOURCE_INTERNAL   (0)
+#define EVE_CLOCK_SOURCE_EXTERNAL   (1)
+
+//My defines for the external crystal clock (multiplying is hard)
+#define EVE_EXTERNAL_CLOCK_MUL_UNUSED     (0x00)
+#define EVE_EXTERNAL_CLOCK_MUL_x2_24MHz   (0x02)
+#define EVE_EXTERNAL_CLOCK_MUL_x3_36MHz   (0x03)
+#define EVE_EXTERNAL_CLOCK_MUL_x4_48MHz   (0x44)
+#define EVE_EXTERNAL_CLOCK_MUL_x5_60MHz   (0x45)
+#define EVE_EXTERNAL_CLOCK_MUL_x6_72MHz   (0x46)
+#define EVE_EXTERNAL_CLOCK_MUL_x7_84MHz   (0x47)
+
+//My defines for the touch devices.
+#define EVE_TOUCH_NONE       (0)
+#define EVE_TOUCH_RESISTIVE  (1)
+#define EVE_TOUCH_CAPACITIVE (2)
+#define EVE_CAP_DEV_DEFAULT  (0)
+#define EVE_CAP_DEV_GT911    (1)
+#define EVE_CAP_DEV_FT5316   (2)
 
 // Might be useful for the EVE's 16.16 fixed point
 #define to_16_16_fp(int_part,frc_part)  ((uint32_t)((((uint32_t)int_part)<<16)|((uint32_t)frc_part)))
 
+//For displaying a bitmap stored in flash, addresed by sector.
+//The parameters filter/wrapx/wrapy are always set to NEAREST/BORDER/BORDER
+#define  FLASH_SETBITMAP(FWO,SECTOR,FORMAT,WIDTH,HEIGHT)\
+           EVE_Cmd_Dat_3(FWO,\
+                         EVE_ENC_CMD_SETBITMAP,\
+                         ((uint32_t)0x800000) | (((uint32_t)SECTOR)<<7),\
+                         (((uint32_t)WIDTH) << 16) | ((uint32_t)FORMAT),\
+                         (uint32_t)HEIGHT)
+
+//The parameters filter/wrapx/wrapy are always set to NEAREST/BORDER/BORDER
+#define  RAMG_SETBITMAP(FWO,RAM_G_ADDRESS,FORMAT,WIDTH,HEIGHT)\
+           EVE_Cmd_Dat_3(FWO,\
+                         EVE_ENC_CMD_SETBITMAP,\
+                         RAM_G_ADDRESS,\
+                         (((uint32_t)WIDTH) << 16) | ((uint32_t)FORMAT),\
+                         (uint32_t)HEIGHT)
+
+                         
 //##################################################################################################
 // Below are defines as provided by FRDI / BridgeTek, refactored / cleaned up a bit
 // by Crystalfontz.
@@ -760,11 +809,50 @@
 #define EVE_ADC_SINGLE_ENDED            (0x00000000UL) // = 0UL
 #define EVE_ADPCM_SAMPLES               (0x00000002UL) // = 2UL
 
+#define EVE_REG_TOUCH_CONFIG            (0x00302168UL) // = 3154280UL
+#define EVE_CTOUCH_MODE_COMPATIBILITY   (0x00000001UL) // = 1UL
+#define EVE_CTOUCH_MODE_EXTENDED        (0x00000000UL) // = 0UL
+
 //End EVE parameters
 #endif // ((EVE_DEVICE == FT810) ||(EVE_DEVICE == FT811) ||(EVE_DEVICE == FT812) || (EVE_DEVICE == FT813))
 
 //## BT81x #########################################################################################
 #if ((EVE_DEVICE == BT815) ||(EVE_DEVICE == BT816) ||(EVE_DEVICE == BT817) || (EVE_DEVICE == BT818))
+
+// My defines for the BT8xx PINDRIVE registers and settings
+// Byte 2, bits 1:0 specifies the drive level
+#define EVE_PINDRIVE_HR_5mA             (0x00)
+#define EVE_PINDRIVE_HR_10mA            (0x01)
+#define EVE_PINDRIVE_HR_15mA            (0x02)
+#define EVE_PINDRIVE_HR_20mA            (0x03)
+#define EVE_PINDRIVE_LR_1p2mA           (0x00)
+#define EVE_PINDRIVE_LR_2p4mA           (0x01)
+#define EVE_PINDRIVE_LR_3p6mA           (0x02)
+#define EVE_PINDRIVE_LR_4p8mA           (0x03)
+// Byte 2, bits 7:2 specifies the pin(s)
+#define EVE_PINDRIVE_GPIO_0_HR          (0x00) // 0x00 << 2 =  0 * 4 =   0
+#define EVE_PINDRIVE_GPIO_1_HR          (0x04) // 0x01 << 2 =  1 * 4 =   4
+#define EVE_PINDRIVE_GPIO_2_HR          (0x08) // 0x02 << 2 =  2 * 4 =   8
+#define EVE_PINDRIVE_GPIO_3_HR          (0x0C) // 0x03 << 2 =  3 * 4 =  12
+#define EVE_PINDRIVE_DISP_LR            (0x20) // 0x08 << 2 =  8 * 4 =  32
+#define EVE_PINDRIVE_DE_LR              (0x24) // 0x09 << 2 =  9 * 4 =  36
+#define EVE_PINDRIVE_VSYNC_HSYNC_LR     (0x28) // 0x0A << 2 = 10 * 4 =  40
+#define EVE_PINDRIVE_PCLK_LR            (0x2C) // 0x0B << 2 = 11 * 4 =  44
+#define EVE_PINDRIVE_BACKLIGHT_LR       (0x30) // 0x0C << 2 = 12 * 4 =  48
+#define EVE_PINDRIVE_RGB_LR             (0x34) // 0x0D << 2 = 13 * 4 =  52
+#define EVE_PINDRIVE_AUDIO_L_HR         (0x38) // 0x0E << 2 = 14 * 4 =  56
+#define EVE_PINDRIVE_INT_N_HR           (0x3C) // 0x0F << 2 = 15 * 4 =  60
+#define EVE_PINDRIVE_CTP_RST_N_HR       (0x40) // 0x10 << 2 = 16 * 4 =  64
+#define EVE_PINDRIVE_CTP_SCL_HR         (0x44) // 0x11 << 2 = 17 * 4 =  68
+#define EVE_PINDRIVE_CTP_SDA_HR         (0x48) // 0x12 << 2 = 18 * 4 =  72
+#define EVE_PINDRIVE_SPI_DATA_HR        (0x4C) // 0x13 << 2 = 19 * 4 =  76
+#define EVE_PINDRIVE_SPIM_SCLK_HR       (0x50) // 0x14 << 2 = 20 * 4 =  80
+#define EVE_PINDRIVE_SPIM_SS_N_HR       (0x54) // 0x15 << 2 = 21 * 4 =  84
+#define EVE_PINDRIVE_SPIM_MISO_HR       (0x58) // 0x16 << 2 = 22 * 4 =  88
+#define EVE_PINDRIVE_SPIM_MOSI_HR       (0x5C) // 0x17 << 2 = 23 * 4 =  92
+#define EVE_PINDRIVE_SPIM_IO2_HR        (0x60) // 0x18 << 2 = 24 * 4 =  96
+#define EVE_PINDRIVE_SPIM_IO3_HR        (0x64) // 0x19 << 2 = 25 * 4 = 100
+
 
 #define EVE_LOW_FREQ_BOUND              (58800000L)    //98% of 60Mhz
 
@@ -780,8 +868,8 @@
 #define EVE_RAM_CMD_SIZE                (4*1024L)
 #define EVE_RAM_ERR_REPORT              (0x00309800UL) // = 3184640UL
 #define ROMFONT_TABLEADDRESS            (0x002FFFFCUL) // = 3145724UL
-
 #define EVE_REG_ADAPTIVE_FRAMERATE      (0x0030257CUL) // = 3155324UL
+#define EVE_REG_AH_HCYCLE_MAX           (0x00302610UL) // = 3155472UL
 #define EVE_REG_ANALOG                  (0x0030216CUL) // = 3154284UL
 #define EVE_REG_ANA_COMP                (0x00302184UL) // = 3154308UL
 #define EVE_REG_ANIM_ACTIVE             (0x0030902CUL) // = 3182636UL
@@ -1073,8 +1161,8 @@
 #define EVE_ENC_BEGIN(prim)                                  ((31UL<<24)|(((prim)&15UL)<<0))
 #define EVE_ENC_COLOR_MASK(r,g,b,a)                          ((32UL<<24)|(((r)&0x01UL)<<3)|(((g)&0x01UL)<<2)|(((b)&0x01UL)<<1)|(((a)&0x01UL)<<0))
 #define EVE_ENC_END()                                        ((33UL<<24))
-#define EVE_ENC_SAVE_CONTEXT()                               ((34UL<<24))
-#define EVE_ENC_RESTORE_CONTEXT()                            ((35UL<<24))
+#define EVE_ENC_SAVE_CONTEXT                               ((34UL<<24))
+#define EVE_ENC_RESTORE_CONTEXT                            ((35UL<<24))
 #define EVE_ENC_RETURN()                                     ((36UL<<24))
 #define EVE_ENC_MACRO(m)                                     ((37UL<<24)|(((m)&0x01UL)<<0))
 #define EVE_ENC_CLEAR(c,s,t)                                 ((38UL<<24)|(((c)&0x01UL)<<2)|(((s)&0x01UL)<<1)|(((t)&0x01UL)<<0))
@@ -1120,10 +1208,11 @@
 #define EVE_BEGIN_EDGE_STRIP_L          (0x00000006UL) // = 6UL
 #define EVE_BEGIN_EDGE_STRIP_R          (0x00000005UL) // = 5UL
 #define EVE_TEST_EQUAL                  (0x00000005UL) // = 5UL
-#define EVE_FLASH_STATUS_BASIC          (0x00000002UL) // = 2UL
-#define EVE_FLASH_STATUS_DETACHED       (0x00000001UL) // = 1UL
-#define EVE_FLASH_STATUS_FULL           (0x00000003UL) // = 3UL
+// Return values from EVE_REG_FLASH_STATUS
 #define EVE_FLASH_STATUS_INIT           (0x00000000UL) // = 0UL
+#define EVE_FLASH_STATUS_DETACHED       (0x00000001UL) // = 1UL
+#define EVE_FLASH_STATUS_BASIC          (0x00000002UL) // = 2UL
+#define EVE_FLASH_STATUS_FULL           (0x00000003UL) // = 3UL
 #define EVE_TEST_GEQUAL                 (0x00000004UL) // = 4UL
 #define EVE_GLFORMAT                    (0x0000001FUL) // = 31UL
 #define EVE_TEST_GREATER                (0x00000003UL) // = 3UL

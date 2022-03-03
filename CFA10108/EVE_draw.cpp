@@ -2,7 +2,8 @@
 //
 // Drawing and helper routines for EVE accelerators.
 //
-//  2020-07-30 Brent A. Crosby / Crystalfontz
+// 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
+// https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
 //===========================================================================
 //This is free and unencumbered software released into the public domain.
 //
@@ -32,18 +33,16 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <stdarg.h>
-
-// Definitions for our display.
+// Definitions for our circuit board and display.
 #include "CFA10108_defines.h"
-#include "CFAF1024600xx_070S.h"
 // Transparent Logo
-#include "CFAF1024600xx_070S_Splash_PNG.h"
-#include "CFAF1024600xx_070S_Splash_ARGB2.h"
+#include "Round_Logos.h"
 
 #if BUILD_SD
 #include <SD.h>
 #endif
 
+// The very simple EVE library files
 #include "EVE_defines.h"
 #include "EVE_base.h"
 #include "EVE_draw.h"
@@ -144,9 +143,28 @@ uint16_t EVE_Text(uint16_t FWol,
                   uint16_t Options,
                   char *message)
   {
+//There is some interaction between the video
+//and the text.
+#if (0 == VIDEO_DEMO)
+
+//void Gpu_CoCmd_Text(Gpu_Hal_Context_t *phost,int16_t x, int16_t y, int16_t font, uint16_t options, const char8_t* s)
+//  {
+//  Gpu_CoCmd_StartFunc(phost,CMD_SIZE*3 + strlen(s) + 1);
+//  Gpu_Copro_SendCmd(phost, CMD_TEXT);
+//  Gpu_Copro_SendCmd(phost, (((uint32_t)y<<16)|(x & 0xffff)));
+//  Gpu_Copro_SendCmd(phost, (((uint32_t)options<<16)|(font&0xffff)));
+//  Gpu_CoCmd_SendStr(phost, s);
+//  Gpu_CoCmd_EndFunc(phost,(CMD_SIZE*3 + strlen(s) + 1));  
+//  }
+    
   //Combine Address_offset into then select the EVE
   //and send the 24-bit address and operation flag.
   _EVE_Select_and_Address(EVE_RAM_CMD|FWol,EVE_MEM_WRITE);
+
+//  _EVE_send_32(EVE_ENC_SAVE_CONTEXT);
+//  FWol=(FWol+4)&0xFFF;
+  
+  
   //Send the EVE_ENC_CMD_TEXT command
   _EVE_send_32(EVE_ENC_CMD_TEXT);
   //Send the parameters of the EVE_ENC_CMD_TEXT command
@@ -169,6 +187,7 @@ uint16_t EVE_Text(uint16_t FWol,
     //Keep track that we have written a byte
     FWol=(FWol+1)&0xFFF;
     }
+
   //Send the mandatory null terminator
   SPI.transfer(0);
   //Keep track that we have written a byte
@@ -181,8 +200,16 @@ uint16_t EVE_Text(uint16_t FWol,
     //Keep track that we have written a byte
     FWol=(FWol+1)&0xFFF;
     }
+
+//  _EVE_send_32(EVE_ENC_RESTORE_CONTEXT);
+//  FWol=(FWol+4)&0xFFF;
+  
+  
   //De-select the EVE
   SET_EVE_CS_NOT;
+
+#endif // (0 == VIDEO_DEMO)
+  
   //Give the updated write pointer back to the caller
   return(FWol);
   }
@@ -238,108 +265,126 @@ uint16_t _EVE_PrintFF(uint16_t FWol,
                   tmp));
   }  
 //===========================================================================
-uint16_t Start_Busy_Spinner_Screen(uint16_t FWol,
-                                   uint32_t Clear_Color,
-                                   uint32_t Text_Color,
-                                   uint32_t Spinner_Color,
-                                   const __FlashStringHelper *message)
+// Don't call _Start_Busy_Spinner_ScreenFF() directly, use EVE_Busy_SpinFF()
+// macro.
+uint16_t _Start_Busy_Spinner_ScreenFF(uint16_t FWol,
+                                      uint32_t Clear_Color,
+                                      uint32_t Text_Color,
+                                      uint32_t Spinner_Color,
+                                      const __FlashStringHelper *fmt, ... )
   {
+  //Use the variable argument functions to create the string
+  char
+    tmp[256]; // resulting string limited to 256 chars
+  va_list
+    args;
+  va_start(args, fmt );
+  vsnprintf_P(tmp, 256, (const char *)fmt, args);
+  va_end (args);
+  //Put that string into to the EVE Display List
+    
   //Make sure that the chip is caught up.
   FWol=Wait_for_EVE_Execution_Complete(FWol);
 
-DBG_GEEK("\nFWo read from BT817 at start of Start_Busy_Spinner_Screen: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWol);
-  
-  //========== START THE EVE_ENC_DISPLAY LIST ==========
+  //========== START THE DISPLAY LIST ==========
   // Start the display list
   FWol=EVE_Cmd_Dat_0(FWol, (EVE_ENC_CMD_DLSTART));
   // Set the default clear color to black
   FWol=EVE_Cmd_Dat_0(FWol, Clear_Color);
   // Clear the screen - this and the previous prevent artifacts between lists
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
+                     EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
   //Solid color -- not transparent
   FWol=EVE_Cmd_Dat_0(FWol, EVE_ENC_COLOR_A(255));
 
-  //========== ADD GRAPHIC ITEMS TO THE EVE_ENC_DISPLAY LIST ==========
+  //========== ADD GRAPHIC ITEMS TO THE DISPLAY LIST ==========
   // Set the drawing for the text
   FWol=EVE_Cmd_Dat_0(FWol,
-                       Text_Color);
+                     Text_Color);
   //Display the caller's message at the center of the screen using bitmap handle 25
-  FWol=EVE_TextF(FWol,
-                 LCD_WIDTH/2,
-                 LCD_HEIGHT/2,
-                 25,  //font
-                 EVE_OPT_CENTER,
-                 message);
+  FWol=EVE_Text(FWol,
+                LCD_WIDTH/2,
+                LCD_HEIGHT/2,
+                25,  //font
+                EVE_OPT_CENTER,
+                tmp);
+                
   // Set the drawing color for the spinner
   FWol=EVE_Cmd_Dat_0(FWol, Spinner_Color);
   //Send the spinner go command
-
-/*
-// Appears to be broken, I have an e-mail in to support 
-
   FWol=EVE_Cmd_Dat_2(FWol,
-                       CMD_SPINNER,
-                       (((uint32_t)LCD_HEIGHT/2)<<16) | (LCD_WIDTH/2),
-                       //scale, style
-                       (((uint32_t)1)<<16) | (1));
-*/
+                     EVE_ENC_CMD_SPINNER,
+                     (((uint32_t)LCD_HEIGHT/2)<<16) | (LCD_WIDTH/2),
+                     //scale, style
+                     (((uint32_t)1)<<16) | (0));
 
   // Instruct the graphics processor to show the list
   FWol=EVE_Cmd_Dat_0(FWol, EVE_ENC_DISPLAY());
-  // Make this list active
-  FWol=EVE_Cmd_Dat_0(FWol, (EVE_ENC_CMD_SWAP));
+  // Make this list active.
+  // ref: http://www.brtcommunity.com/index.php?topic=286.0
+  // We cannot have a SWAP here for BT817!
+  // FWol=EVE_Cmd_Dat_0(FWol, (EVE_ENC_CMD_SWAP));
   // Update the ring buffer pointer so the graphics processor starts
   // executing.
   // Note: this is a write to register space not EVE_RAM_CMD space.
   EVE_REG_Write_16(EVE_REG_CMD_WRITE, FWol);
 
-DBG_GEEK("FWo read from BT817 at end of Start_Busy_Spinner_Screen: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWol);
   //We are done, return the updated address.
   return(FWol);
   }
 //===========================================================================
-uint16_t Stop_Busy_Spinner_Screen(uint16_t FWol,
-                                  uint32_t Clear_Color,
-                                  uint32_t Text_Color,
-                                  const __FlashStringHelper *message)
+// Don't call _Stop_Busy_Spinner_ScreenFF() directly, use EVE_Busy_StopFF()
+// macro.
+uint16_t _Stop_Busy_Spinner_ScreenFF(uint16_t FWol,
+                                     uint32_t Clear_Color,
+                                     uint32_t Text_Color,
+                                     const __FlashStringHelper *fmt, ... )
   {
+  //Use the variable argument functions to create the string
+  char
+    tmp[256]; // resulting string limited to 256 chars
+  va_list
+    args;
+  va_start(args, fmt );
+  vsnprintf_P(tmp, 256, (const char *)fmt, args);
+  va_end (args);
+  //Put that string into to the EVE Display List
+
   //Make sure that the chip is caught up.
   FWol=Wait_for_EVE_Execution_Complete(FWol);
-  //========== START THE EVE_ENC_DISPLAY LIST ==========
+  //========== START THE DISPLAY LIST ==========
   // Start the display list
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CMD_DLSTART);
+                     EVE_ENC_CMD_DLSTART);
   // Set the default clear color to black
   FWol=EVE_Cmd_Dat_0(FWol,
-                       Clear_Color);
+                     Clear_Color);
   // Clear the screen - this and the previous prevent artifacts between lists
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
+                     EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
   //Solid color -- not transparent
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_COLOR_A(255));
+                     EVE_ENC_COLOR_A(255));
 
   //========== STOP THE SPINNER ==========
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CMD_STOP);
-
-  //========== ADD GRAPHIC ITEMS TO THE EVE_ENC_DISPLAY LIST ==========
+                     EVE_ENC_CMD_STOP);
+  //========== ADD GRAPHIC ITEMS TO THE DISPLAY LIST ==========
   // Set the drawing for the text
   FWol=EVE_Cmd_Dat_0(FWol,
-                       Text_Color);
+                     Text_Color);
 
   //Display the caller's message at the center of the screen using bitmap handle 25
-  FWol=EVE_TextF(FWol,
-                 LCD_WIDTH/2,
-                 LCD_HEIGHT/2,
-                 25,  //font
-                 EVE_OPT_CENTER,
-                 message);
+  FWol=EVE_Text(FWol,
+                LCD_WIDTH/2,
+                LCD_HEIGHT/2,
+                25,  //font
+                EVE_OPT_CENTER,
+                tmp);
 
   // Instruct the graphics processor to show the list
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_DISPLAY());
+                     EVE_ENC_DISPLAY());
   // Make this list active
   FWol=EVE_Cmd_Dat_0(FWol,
                        EVE_ENC_CMD_SWAP);
@@ -356,22 +401,22 @@ uint16_t Calibrate_Touch(uint16_t FWol)
   //========== CALIBRATE ==========
   //Make sure that the chip is caught up.
   FWol=Wait_for_EVE_Execution_Complete(FWol);
-  //========== START THE EVE_ENC_DISPLAY LIST ==========
+  //========== START THE DISPLAY LIST ==========
   // Start the display list
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CMD_DLSTART);
+                     EVE_ENC_CMD_DLSTART);
   // Set the drawing color to white
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF));
+                     EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF));
   //Solid color -- not transparent
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_COLOR_A(255));
+                     EVE_ENC_COLOR_A(255));
   // Set the default clear color to blue
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CLEAR_COLOR_RGB(0,0,0xFF));
+                     EVE_ENC_CLEAR_COLOR_RGB(0,0,0xFF));
   // Clear the screen - this and the previous prevent artifacts between lists
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
+                     EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
   FWol=EVE_PrintF(FWol,
                   LCD_WIDTH/2,
                   LCD_HEIGHT/2,
@@ -379,14 +424,14 @@ uint16_t Calibrate_Touch(uint16_t FWol)
                   EVE_OPT_CENTER,
                   "Touch dot to calibrate");
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CMD_CALIBRATE);
-  //========== FINSH AND SHOW THE EVE_ENC_DISPLAY LIST ==========
+                     EVE_ENC_CMD_CALIBRATE);
+  //========== FINSH AND SHOW THE DISPLAY LIST ==========
   // Instruct the graphics processor to show the list
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_DISPLAY());
+                     EVE_ENC_DISPLAY());
   // Make this list active
   FWol=EVE_Cmd_Dat_0(FWol,
-                       EVE_ENC_CMD_SWAP);
+                     EVE_ENC_CMD_SWAP);
   // Update the ring buffer pointer so the graphics processor starts executing
   EVE_REG_Write_16(EVE_REG_CMD_WRITE, FWol);
   //Wait for the user to finish calibration.
@@ -422,29 +467,29 @@ uint16_t EVE_Load_PNG_to_RAM_G(uint16_t FWol,
   ((uint8_t *)(Image_Height))[2]=pgm_read_byte(PNG_data+20+1);
   ((uint8_t *)(Image_Height))[3]=pgm_read_byte(PNG_data+20+0);
   //We know that the EVE will uncompress the image as a R5G6B5 image
-  //(16-bits per pixel) into RAM_G, so we can calcualte the amount
+  //(16-bits per pixel) into RAM_G, so we can calculate the amount
   //of RAMG we will use.
   uint32_t
     RAM_G_Needed;
   RAM_G_Needed=((*Image_Width)*(*Image_Height))<<1;
 
   //See if there is room
-  if((RAM_G_SIZE-*(RAM_G_Address)) < RAM_G_Needed)
+  if((EVE_RAM_G_SIZE - *RAM_G_Address) < RAM_G_Needed)
     {
     DBG_STAT("EVE_Load_PNG_to_RAM_G(): Image is %lu bytes long, but only %lu are available.\n",
-                 RAM_G_Needed,RAM_G_SIZE-(*RAM_G_Address));
+              RAM_G_Needed,EVE_RAM_G_SIZE-(*RAM_G_Address));
     //Bail out with the address unchanged.
     return(FWol);
     }
 
   //Write the CMD_LOADIMAGE and parameters
   FWol=EVE_Cmd_Dat_2(FWol,
-                       //The command
-                       CMD_LOADIMAGE,
-                       //First is 32-bit RAM_G offset.
-                       *RAM_G_Address,
-                       //Second is the PNG options.
-                       OPT_NODL);
+                     //The command
+                     EVE_ENC_CMD_LOADIMAGE,
+                     //First is 32-bit RAM_G offset.
+                     *RAM_G_Address,
+                     //Second is the PNG options.
+                     EVE_OPT_NODL);
 
   //We need to ensure 4-byte alignment.
   PNG_length=(PNG_length+0x03)&0xFFFFFFFC;
@@ -537,8 +582,9 @@ uint16_t EVE_Load_PNG_to_RAM_G(uint16_t FWol,
   return(FWol);
   }
 #endif // (0==LOGO_PNG_0_ARGB2_1)
+#endif // (1==LOGO_DEMO)
 //===========================================================================
-#if (1==LOGO_PNG_0_ARGB2_1)
+//#if (1==LOGO_PNG_0_ARGB2_1)
 uint16_t EVE_Inflate_to_RAM_G(uint16_t FWol,
                               const uint8_t *Flash_Data,
                               uint32_t data_length,
@@ -548,10 +594,10 @@ uint16_t EVE_Inflate_to_RAM_G(uint16_t FWol,
   //Load and INFLATE data from flash to RAM_G
   //Write the EVE_ENC_CMD_INFLATE and parameters
   FWol=EVE_Cmd_Dat_1(FWol,
-                       //The command
-                       EVE_ENC_CMD_INFLATE,
-                       //First is 32-bit RAM_G offset.
-                       *RAM_G_Address);
+                     //The command
+                     EVE_ENC_CMD_INFLATE,
+                     //First is 32-bit RAM_G offset.
+                     *RAM_G_Address);
   //We need to ensure 4-byte alignment.
   data_length=(data_length+0x03)&0xFFFFFFFC;
   //Pipe out data_length of data from data_address. Use chunks so we
@@ -616,8 +662,8 @@ uint16_t EVE_Inflate_to_RAM_G(uint16_t FWol,
   //Return the updated address
   return(FWol);
   }
-#endif // (1==LOGO_PNG_0_ARGB2_1)
-#endif // (1==LOGO_DEMO)
+//#endif // (1==LOGO_PNG_0_ARGB2_1)
+//#endif // (1==LOGO_DEMO)
 //============================================================================
 #if BUILD_SD
 // This reads a file from the uSD card and writes it directly
@@ -682,19 +728,8 @@ void EVE_Load_File_To_RAM_G(uint32_t RAM_G_Address,
     RAM_G_Address+=this_chunk_size;
 
     //Pipe out this_chunk_size of data from this_chunk[]
-    //Get a local pointer to this_chunk[]
-    uint8_t
-      *ptr;
-    ptr=&this_chunk[0];
-
-    do
-      {
-      // byte loop
-      SPI.transfer(*ptr);
-      ptr++;
-      this_chunk_size--;
-      } // byte loop
-    while(this_chunk_size);
+    //to the EVE.
+    SPI.transfer(this_chunk,this_chunk_size);
 
     //De-select the EVE
     SET_EVE_CS_NOT;

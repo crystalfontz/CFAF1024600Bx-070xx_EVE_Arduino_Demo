@@ -25,7 +25,8 @@
 // Plus, you probably don't have RAM and flash for all those fancy
 // programming layers.
 //
-//  2020-07-30 Brent A. Crosby / Crystalfontz
+// 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
+// https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
 //---------------------------------------------------------------------------
 //This is free and unencumbered software released into the public domain.
 //
@@ -79,12 +80,14 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <stdarg.h>
-
-// Definitions for our display.
+// Definitions for our circuit board and display.
 #include "CFA10108_defines.h"
-#include "CFAF1024600xx_070S.h"
 
-#include "EVE_defines.h"
+#if BUILD_SD
+#include <SD.h>
+#endif
+
+// The very simple EVE library files
 #include "EVE_base.h"
 #include "EVE_draw.h"
 //============================================================================
@@ -95,7 +98,7 @@
 // Example to dump a uint32_t in hex and decimal
 //   SerPrintFF(F("RAM_G_Unused_Start: 0x%08lX = %lu\n"),RAM_G_Unused_Start,RAM_G_Unused_Start);
 // Example to dump a uint16_t in hex and decimal
-//   SerPrintFF(F("Initial Offest Read: 0x%04X = %u\n"),FWo ,FWo);
+//   SerPrintFF(F("Initial Offset Read: 0x%04X = %u\n"),FWo ,FWo);
 void SerPrintFF(const __FlashStringHelper *fmt, ... )
   {
   char
@@ -106,6 +109,62 @@ void SerPrintFF(const __FlashStringHelper *fmt, ... )
   vsnprintf_P(tmp, 128, (const char *)fmt, args);
   va_end (args);
   Serial.print(tmp);
+  }
+//============================================================================
+void DBG_GEEK_Decode_Flash_Status(uint8_t EVE_flash_status)
+  {
+#if (DEBUG_LEVEL == DEBUG_GEEK)
+  DBG_GEEK("REG_FLASH_STATUS = 0x%02X = %3d = \"FLASH_STATUS_",EVE_flash_status,EVE_flash_status);
+  switch(EVE_flash_status)
+    {
+    case EVE_FLASH_STATUS_INIT:
+      DBG_GEEK("INIT\"\n");
+      break;
+    case EVE_FLASH_STATUS_DETACHED:
+      DBG_GEEK("DETACHED\"\n");
+      break;
+    case EVE_FLASH_STATUS_BASIC:
+      DBG_GEEK("BASIC (slow)\"\n");
+      break;
+    case EVE_FLASH_STATUS_FULL:
+      DBG_GEEK("FULL (fast)\"\n");
+      break;
+    default:
+      DBG_GEEK("Error/Unknown\"\n");
+      break;
+    }
+#endif //  (DEBUG_LEVEL == DEBUG_GEEK)
+  }
+//============================================================================
+void DBG_GEEK_Decode_FastFlash_Status(uint32_t EVE_fast_flash_result)
+  {
+#if (DEBUG_LEVEL == DEBUG_GEEK)
+  DBG_GEEK("CMD_FLASHFAST result: 0x%08lX = \"",EVE_fast_flash_result);
+  switch(EVE_fast_flash_result)
+    {
+    case 0x00000000:
+      DBG_GEEK("success, no error\"\n");
+      break;
+    case 0x0000E001:
+      DBG_GEEK("flash is not supported\"\n");
+      break;
+    case 0x0000E002:
+      DBG_GEEK("no header detected in sector 0\"\n");
+      break;
+    case 0x0000E003:
+      DBG_GEEK("sector 0 data failed integrity check\"\n");
+      break;
+    case 0x0000E004:
+      DBG_GEEK("device/blob mismatch\"\n");
+      break;
+    case 0x0000E005:
+      DBG_GEEK("failed full-speed test\"\n");
+      break;
+    default:
+      DBG_GEEK("invalid result returned\"\n");
+      break;
+    }
+#endif //  (DEBUG_LEVEL == DEBUG_GEEK)
   }
 //============================================================================
 uint8_t Validate_and_Print_Chip_ID(uint32_t Chip_ID)
@@ -583,14 +642,15 @@ uint16_t Get_Free_CMD_Space(uint16_t FWol)
 // locations to make efficient use of the memory. Whilst the commands above
 // define that the data will begin at 0, the end address is not known as the
 // inflated data will be larger than the compressed data written to the
-// EVE_ENC_CMD_INFLATE command. The EVE_ENC_CMD_GETPTR can be used to check the ending
-// address. This command actually returns its value via the co-processor
-// FIFO itself. The command (4 bytes) is sent with a dummy (4-byte) value as
-// a parameter and so occupies two 32-bit locations in the command FIFO. On
-// completion, the co-processor replaces the dummy value with the ending
-// address. The application must then perform a read of this location (which
-// can be obtained by checking the current EVE_REG_CMD_WRITE pointer and
-// subtracting 4 taking account of any possible rollover at (EVE_RAM_CMD+0).
+// EVE_ENC_CMD_INFLATE command. The EVE_ENC_CMD_GETPTR can be used to check
+// the ending address. This command actually returns its value via the
+// co-processor FIFO itself. The command (4 bytes) is sent with a dummy
+// (4-byte) value as a parameter and so occupies two 32-bit locations in the
+// command FIFO. On completion, the co-processor replaces the dummy value with
+// the ending address. The application must then perform a read of this
+// location (which can be obtained by checking the current EVE_REG_CMD_WRITE
+// pointer and subtracting 4 taking account of any possible rollover at
+// (EVE_RAM_CMD+0).
 //----------------------------------------------------------------------------
 uint16_t Get_RAM_G_Pointer_After_INFLATE(uint16_t FWol,
                                          uint32_t *RAM_G_First_Available)
@@ -621,7 +681,7 @@ uint16_t Get_RAM_G_Properties_After_LOADIMAGE(uint16_t FWol,
   FWol=Wait_for_EVE_Execution_Complete(FWol);
   // Tell the chip to get the first free location in RAM_G
   FWol=EVE_Cmd_Dat_3(FWol,
-                       EVE_ENC_CMD_GETPROPS,0,0,0);
+                     EVE_ENC_CMD_GETPROPS,0,0,0);
   // Update the ring buffer pointer so the graphics processor starts executing
   EVE_REG_Write_16(EVE_REG_CMD_WRITE,FWol);
   //Wait for the chip to catch up.
@@ -638,6 +698,92 @@ uint16_t Get_RAM_G_Properties_After_LOADIMAGE(uint16_t FWol,
   //We know that the answer is 12 addresses lower than FWol
   //Read the value and passs it back to the caller know what we found.
   *RAM_G_First_Available=EVE_REG_Read_32(EVE_RAM_CMD+((FWol-12) & 0x0FFF));
+  return(FWol);
+  }
+//===========================================================================
+uint32_t EVE_Set_Flash_to_Fast(uint16_t FWol)
+  {
+  //Make sure the EVE is caught up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+  //Send the command to the coprocessor
+  FWol=EVE_Cmd_Dat_1(FWol,
+                     EVE_ENC_CMD_FLASHFAST,
+                     0);
+  // Update the ring buffer pointer so the coprocessor starts executing
+  EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
+  //Now wait for the coprocessor to catch up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+
+  //Read the result from  EVE_ENC_CMD_FLASHFAST
+  uint32_t
+    CMD_FastFlash_Result;
+  //We know that the result is 4 addresses lower than FWol
+  //Read the value and passs it back to the caller know what we found.
+  CMD_FastFlash_Result=EVE_REG_Read_32(EVE_RAM_CMD+((FWol-4) & 0x0FFF));
+
+#if (DEBUG_LEVEL == DEBUG_GEEK)
+  //Print out the flash status.
+  uint8_t
+    status;
+  status = EVE_REG_Read_8(EVE_REG_FLASH_STATUS);
+  DBG_GEEK_Decode_Flash_Status(status);
+  DBG_GEEK_Decode_FastFlash_Status(CMD_FastFlash_Result);
+#endif //  (DEBUG_LEVEL == DEBUG_GEEK)
+  return(FWol);
+  }
+//---------------------------------------------------------------------------
+// Switches the FLASH attached to a BT815/BT816 to full-speed
+// mode, returns 0 for failing to do so
+uint16_t EVE_Initialize_Flash(uint16_t FWol)
+  {
+  // We expect EVE_REG_FLASH_STATUS to return 0x02 - FLASH_STATUS_BASIC
+  // indicating power-up is done and the attached flash is detected
+  uint8_t
+    status;
+  status = EVE_REG_Read_8(EVE_REG_FLASH_STATUS);
+  DBG_GEEK("\n");
+  DBG_GEEK_Decode_Flash_Status(status);
+  //The goal is to get to fast . . . so let's give that a try.
+  switch(status)
+    {
+    case EVE_FLASH_STATUS_INIT:
+      DBG_STAT("EVE_init_flash(): Error - status is INIT, not BASIC.\n");
+      break;
+    case EVE_FLASH_STATUS_DETACHED:
+      DBG_STAT("EVE_init_flash(): Error - status is DETACHED, not BASIC.\n");
+      break;
+    case EVE_FLASH_STATUS_BASIC:
+      //This is what we expect. Switch to fast.
+      FWol=EVE_Set_Flash_to_Fast(FWol);
+      //Print out the flash size, since we can.
+      uint32_t
+        flash_size;
+      flash_size = EVE_REG_Read_32(EVE_REG_FLASH_SIZE);
+      DBG_STAT("EVE_init_flash(): EVE_REG_FLASH_SIZE = %lu MB\n",flash_size);      
+      break;
+    case EVE_FLASH_STATUS_FULL:
+      DBG_STAT("EVE_init_flash(): Warning - status already FULL.\n");
+      break;
+    default:
+      DBG_STAT("EVE_init_flash(): Error - invalid status.\n");
+      break;
+    }
+  return(FWol);
+  }
+//============================================================================
+uint16_t Erase_Entire_Flash_Chip(uint16_t FWol)
+  {
+  DBG_GEEK("Erasing flash (takes a long time) . . . ");
+  //Make sure the EVE is caught up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+  //Send the command to the coprocessor
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_CMD_FLASHERASE);
+  // Update the ring buffer pointer so the coprocessor starts executing
+  EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
+  //Now wait for the coprocessor to catch up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+  DBG_GEEK("done. ");
   return(FWol);
   }
 //============================================================================
@@ -760,22 +906,38 @@ uint16_t EVE_Init_Goodix_GT911(uint16_t FWol)
   //"Straight AN_336"
   //"Hold the touch engine in reset (write EVE_REG_CPURESET=2)"
   EVE_REG_Write_8(EVE_REG_CPURESET, 0x02);
+  //Rudolph's
+  //EVE_REG_Write_8(EVE_REG_TOUCH_OVERSAMPLE, 0x0f);
   //"Write REG_TOUCH_CONFIG=0x05D0"
-  EVE_REG_Write_16(REG_TOUCH_CONFIG, 0x05D0);
+  EVE_REG_Write_16(EVE_REG_TOUCH_CONFIG, 0x05D0);
+  //    0    5    D   0
+  // 0000 0101 1101 0000
+  // |||| |||| |||| ||||-sampler clocks
+  // |||| |||| |||| ||---supress 300ms startup
+  // |||| |||| |||| |----vendor: 0=FocalTech, 1 = Azoteq
+  // |||| |||| ||||------I2C address=0x5D
+  // |||| |              ?? GT911 supports two I2C slave addresses:
+  // |||| |              0xBA/0xBB and 0x28/0x29. ??
+  // |||| |              0xBA is 1011 1010, bit reversed of 0x5D
+  // |||| |--------------enable low power
+  // ||||----------------ignore short circuit
+  // |||-----------------reserved
+  // |-------------------0 = capacitive, 1 = resistive
   //"Set GPIO0 output LOW"
-  // The CFA10100 FT813 uses GPIO3 to reset GT911
+  // The CFA10108 FT813 uses GPIO3 to reset GT911
   // Reset-Value is 0x8000 adding 0x0008 sets GPIO3 to output
   // Default-value for EVE_REG_GPIOX is 0x8000 -> Low output on GPIO3
-  EVE_REG_Write_16(REG_GPIOX_DIR,0x8008);
+  EVE_REG_Write_16(EVE_REG_GPIOX_DIR,0x8008);
   // "Wait more than 100us"
   delay(1);
   // "Write EVE_REG_CPURESET=0"
   EVE_REG_Write_8(EVE_REG_CPURESET, 0x00);
   // "Wait more than 55ms"
-  delay(56);
+  // 2020-08-05 RR discovered that ~108ms is needed for multitouch
+  delay(110);
   // "Set GPIO0 to input (floating)"
-  // The CFA10100 FT813 uses GPIO3 to reset GT911
-  EVE_REG_Write_16(REG_GPIOX_DIR,0x8000);
+  // The CFA10108 FT813 uses GPIO3 to reset GT911
+  EVE_REG_Write_16(EVE_REG_GPIOX_DIR,0x8000);
 
   //Return the updated address
   return(FWol);
@@ -953,7 +1115,7 @@ uint8_t Read_Touch(int16_t x_points[1], int16_t y_points[1])
   uint32_t
     temp;
   //Resistive
-  temp = EVE_REG_Read_32(REG_TOUCH_SCREEN_XY);
+  temp = EVE_REG_Read_32(EVE_REG_TOUCH_SCREEN_XY);
   x_points[0]=(uint16_t)(temp>>16);
   y_points[0]=(uint16_t)temp;
   //Count up the point.
@@ -969,13 +1131,101 @@ uint8_t Read_Touch(int16_t x_points[1], int16_t y_points[1])
   }
 #endif // EVE_TOUCH_TYPE==EVE_TOUCH_RESISTIVE
 //============================================================================
+#if (DEBUG_LEVEL==DEBUG_GEEK)
+// Do not call directly, use this macro instead:
+//   DBG_GEEK_READ_AND_DUMP_TOUCH_MATRIX();
+// You can use this function along with 
+// #define EVE_TOUCH_CAL_NEEDED (1)
+// #define DEBUG_LEVEL (DEBUG_GEEK)
+// in CFA10108_defines.h to create and display a set of
+// touch matrix elements.
+void Read_and_Dump_Touch_Matrix(const __FlashStringHelper *message)
+  {
+  int32_t
+    touch_transform[6];
+
+  touch_transform[0] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_A);
+  touch_transform[1] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_B);
+  touch_transform[2] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_C);
+  touch_transform[3] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_D);
+  touch_transform[4] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_E);
+  touch_transform[5] = EVE_REG_Read_32(EVE_REG_TOUCH_TRANSFORM_F);
+
+  //We have to a little Arduino (well, AVR, really) dance to use
+  //a flash string for our message.
+  DBG_GEEK("Touch Transform Matrix, ");
+  SerPrintFF(message);
+  DBG_GEEK(":\n    {\n");
+  for(uint8_t i=0;i<=5;i++)
+    {
+    char
+      float_string[12];
+    dtostrf((float)touch_transform[i]/(float)0x00010000,10,4, float_string);
+    DBG_GEEK("    (int32_t)0x%08lX%c // [%c] = %s\n",
+              touch_transform[i],i==5?' ':',',
+              i+'A',
+              float_string);
+    }
+  DBG_GEEK("    };\n");  
+  }
+#endif //(DEBUG_LEVEL==DEBUG_GEEK)  
+//============================================================================
+// Once you have an updated matrix from above, you can paste it in below
+// and set:
+// #define EVE_TOUCH_CAL_NEEDED (0)
+// to send the stored touch matrix to the EVE
+#if ((EVE_TOUCH_TYPE!=EVE_TOUCH_NONE) && (0 == EVE_TOUCH_CAL_NEEDED))
+void Force_Touch_Matrix(void)
+  {
+#if 0
+  //Default, identity matrix
+  const int32_t touch_transform[6] PROGMEM =
+    {
+    (int32_t)0x00010000, // [A] =     1.0000
+    (int32_t)0x00000000, // [B] =     0.0000
+    (int32_t)0x00000000, // [C] =     0.0000
+    (int32_t)0x00000000, // [D] =     0.0000
+    (int32_t)0x00010000, // [E] =     1.0000
+    (int32_t)0x00000000  // [F] =     0.0000
+    };
+#else
+  //Resistive touch should be field calibrarted once, then the 
+  //stored matrix can can be stored and sent to the EVE at
+  //boot time.
+  //In a final application the end user should have the
+  //ability to preform a tocuh calibration which should be
+  //stored as the new touch_transform[] matrix.
+  const int32_t touch_transform[6] PROGMEM =
+    {
+    (int32_t)0x00014826, // [A] =     1.2818
+    (int32_t)0xFFFFFFE1, // [B] =    -0.0005
+    (int32_t)0x000B03BB, // [C] =    11.0146
+    (int32_t)0x00000154, // [D] =     0.0052
+    (int32_t)0x00013EE3, // [E] =     1.2457
+    (int32_t)0xFFFC1A0E  // [F] =    -3.8982
+    };   
+#endif
+
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_A,touch_transform[0]);
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_B,touch_transform[1]);
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_C,touch_transform[2]);
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_D,touch_transform[3]);
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_E,touch_transform[4]);
+  EVE_REG_Write_32(EVE_REG_TOUCH_TRANSFORM_F,touch_transform[5]);
+  }
+#endif // ((EVE_TOUCH_TYPE!=EVE_TOUCH_NONE) && (0 == EVE_TOUCH_CAL_NEEDED))
+//============================================================================
+// This is the Pin Drive Table that is defined in the display header
+// file, but actually created here.
+PIN_DRIVE_TABLE;
+//============================================================================
 uint8_t EVE_Initialize(void)
   {
   // Wake up the EVE
   delay(20);          // Wait a few MS before waking the FT800
-  CLR_EVE_PD_NOT;    // 1) lower PD#
+  CLR_EVE_PD_NOT;     // 1) lower PD#
   delay(6);           // 2) hold for 20ms
-  SET_EVE_PD_NOT;    // 3) raise PD#
+  SET_EVE_PD_NOT;     // 3) raise PD#
   delay(21);          // 4) wait for another 20ms before sending any commands
 
   //ref: https://github.com/RudolphRiedel/FT800-FT813/blob/4.x/EVE_commands.c
@@ -1042,7 +1292,7 @@ uint8_t EVE_Initialize(void)
       delay(1);
       }
     }
-  DBG_GEEK("Polled ID register %d times.\n",timeout);
+  DBG_GEEK("Polled EVE_REG_ID register %d times.\n",timeout);
 
   //Poll EVE_REG_CPURESET until it returns 0, meaning that the reset is complete
   timeout=0;
@@ -1074,20 +1324,22 @@ uint8_t EVE_Initialize(void)
   //Remind the chip of the speed it is running at
   EVE_REG_Write_32(EVE_REG_FREQUENCY,EVE_CLOCK_SPEED);
 
+#if (0 != EVE_TOUCH_CAL_NEEDED) || ((EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_GT911)) || (0 != EVE_PEN_UP_BUG_FIX)
   //Get the currrent write pointer offset from the EVE
   uint16_t
-    FWol;
-  FWol = EVE_REG_Read_16(EVE_REG_CMD_WRITE);
+    FWo;
+  FWo = EVE_REG_Read_16(EVE_REG_CMD_WRITE);
+  DBG_GEEK("Initial FWo read from EVE: %u\n",FWo);
+#endif // (0 != EVE_TOUCH_CAL_NEEDED) || ((EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_GT911)) || (0 != EVE_PEN_UP_BUG_FIX)
 
-  DBG_GEEK("Initial FWo read from EVE: %u\n",FWol);
 #if (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_GT911)
-  FWol=EVE_Init_Goodix_GT911(FWol);
-  DBG_GEEK("FWol read from EVE after Goodix Fix: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWol);
+  FWo=EVE_Init_Goodix_GT911(FWo);
+  DBG_GEEK("FWo read from EVE after GT911 initialization: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWo);
 #endif // (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_GT911)
 
 #if (0 != EVE_PEN_UP_BUG_FIX)
-  FWol=EVE_Init_Pen_Up_Bug_Fix(FWol);
-  DBG_GEEK("FWol read from EVE after Pen Up Bug Fix: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWol);
+  FWo=EVE_Init_Pen_Up_Bug_Fix(FWo);
+  DBG_GEEK("FWo read from EVE after Pen Up Bug Fix: %u Our SW copy: %u\n",EVE_REG_Read_16(EVE_REG_CMD_WRITE),FWo);
 #endif // (0 != EVE_PEN_UP_BUG_FIX)
 
   // Now that we have some confidence we can talk to the EVE, proceed with
@@ -1112,6 +1364,23 @@ uint8_t EVE_Initialize(void)
   EVE_REG_Write_8(EVE_REG_PCLK_POL, LCD_PCLKPOL); // LCD data is clocked in on this PCLK edge
   // Don't set PCLK yet - wait for just after the first display list
 
+#if ((EVE_DEVICE == BT815) ||(EVE_DEVICE == BT816) ||(EVE_DEVICE == BT817) || (EVE_DEVICE == BT818))
+  //BT81x series
+  //Set the pin drive for any pins overridden by Pin_Drive_Table
+  for(uint8_t i=0;i< sizeof(Pin_Drive_Table);i++)
+      {
+      EVE_Command_Write(EVE_PINDRIVE,pgm_read_byte(&Pin_Drive_Table[i]));
+      DBG_GEEK("Pin_Drive_Table[%2d] = 0x%02x = %3d\n",
+               i,
+               pgm_read_byte(&Pin_Drive_Table[i]),
+               pgm_read_byte(&Pin_Drive_Table[i]));
+      }
+
+  EVE_REG_Write_16(EVE_REG_ADAPTIVE_FRAMERATE, 0);
+//  EVE_REG_Write_16(EVE_REG_AH_HCYCLE_MAX, 0);
+      
+#else
+  //FT8xx series
   //Set the LCD Drive to 10mA or 5mA 
   // EVE_REG_GPIOX
   // 1111 1100 0000 0000
@@ -1135,7 +1404,12 @@ uint8_t EVE_Initialize(void)
   //Set 5mA drive for:
   //  PCLK, DISP , VSYNC, HSYNC, DE, RGB lines & BACKLIGHT
   EVE_REG_Write_16(EVE_REG_GPIOX,EVE_REG_Read_16(EVE_REG_GPIOX) & ~0x1000);
-#endif
+#endif // (0 != LCD_DRIVE_0_1p2mA_1_2p4mA)
+#endif // ((EVE_DEVICE == BT815) ||(EVE_DEVICE == BT816) ||(EVE_DEVICE == BT817) || (EVE_DEVICE == BT818))
+
+//EVE_REG_ADAPTIVE_FRAMERATE
+
+
 
 #if (0 != LCD_PCLK_CSPREAD)
   EVE_REG_Write_8(EVE_REG_CSPREAD,1);
@@ -1154,25 +1428,26 @@ uint8_t EVE_Initialize(void)
 
 #if (EVE_TOUCH_TYPE==EVE_TOUCH_NONE)
   // Disable touch
-  EVE_REG_Write_8(REG_TOUCH_MODE, 0);
+  EVE_REG_Write_8(EVE_REG_TOUCH_MODE, EVE_TOUCHMODE_OFF);
   // Eliminate any false touches
-  EVE_REG_Write_16(REG_TOUCH_RZTHRESH, 0);
+  EVE_REG_Write_16(EVE_REG_TOUCH_RZTHRESH, 0);
 #endif // (EVE_TOUCH_TYPE==EVE_TOUCH_NONE)
 
 #if (EVE_TOUCH_TYPE==EVE_TOUCH_RESISTIVE)
   //Resistive.
   //Set the threshold somewhere reasonable.
-  EVE_REG_Write_16(REG_TOUCH_RZTHRESH, 1200);
+  EVE_REG_Write_16(EVE_REG_TOUCH_RZTHRESH, 1200);
   //Oversample - higher current better resolution
-  EVE_REG_Write_8(REG_TOUCH_OVERSAMPLE, 6);
+  EVE_REG_Write_8(EVE_REG_TOUCH_OVERSAMPLE, 6);
   //Touch on, once per frame
-  EVE_REG_Write_8(REG_TOUCH_MODE, TOUCH_MODE_FRAME);
+  EVE_REG_Write_8(EVE_REG_TOUCH_MODE, EVE_TOUCHMODE_FRAME);
 #endif // (EVE_TOUCH_TYPE==EVE_TOUCH_RESISTIVE)
 
 #if (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE)
   //Capacitive.
   //Touch on, at rate of touch IC
-  EVE_REG_Write_8(EVE_REG_TOUCH_MODE, EVE_TOUCHMODE_CONTINUOUS);
+//  EVE_REG_Write_8(EVE_REG_TOUCH_MODE, EVE_TOUCHMODE_CONTINUOUS);
+  EVE_REG_Write_8(EVE_REG_TOUCH_MODE, EVE_TOUCHMODE_FRAME);
   //Set compatibility (single touch) mode until after touch cal.
   EVE_REG_Write_8(EVE_REG_CTOUCH_EXTENDED, EVE_CTOUCH_MODE_COMPATIBILITY);
 #endif // (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE)
@@ -1199,6 +1474,31 @@ uint8_t EVE_Initialize(void)
   //next available frame boundary.
   EVE_REG_Write_32(EVE_REG_DLSWAP, EVE_DLSWAP_FRAME);
 
+
+/*
+  from
+  C:\parts_vendors\16000-16099\16084 FTDI EVE FT800 BridgeTek\ref\FTDI_Demo_Code_From_Graham\BRT_AN_025_BT81x_Beta\Code\FT9xx__BRT_AN_025__BT81X\lib\eve\source
+  EVE_API.c
+  
+  // ---------------------- Reset all bitmap properties ------------------------
+  EVE_LIB_BeginCoProList();
+  EVE_CMD_DLSTART();
+  EVE_CLEAR_COLOR_RGB(0, 0, 0);
+  EVE_CLEAR(1,1,1);
+  for (i = 0; i < 16; i++)
+    {
+    EVE_BITMAP_HANDLE(i);
+    EVE_CMD_SETBITMAP(0,0,0,0);
+    }
+  EVE_DISPLAY();
+  EVE_CMD_SWAP();
+  EVE_LIB_EndCoProList();
+  EVE_LIB_AwaitCoProEmpty();
+*/
+
+
+
+
   // Nothing is being displayed yet... the pixel clock is still 0x00
 
   // Enable the DISP line of the LCD.
@@ -1224,9 +1524,502 @@ uint8_t EVE_Initialize(void)
   //Backlight frequency default is 250Hz. That is fine for CFA10108
   EVE_REG_Write_16(EVE_REG_PWM_HZ,250);
   //Crystalfontz EVE displays have soft start. No need to ramp.
-  EVE_REG_Write_8(EVE_REG_PWM_DUTY,128);
+//  EVE_REG_Write_8(EVE_REG_PWM_DUTY,128);
+ //~~
+ EVE_REG_Write_8(EVE_REG_PWM_DUTY,128);
 
+  //See if we need to calibrate the touch screen
+#if (EVE_TOUCH_TYPE != EVE_TOUCH_NONE)
+
+#if (0 != EVE_TOUCH_CAL_NEEDED)
+  DBG_STAT("Touch calibration . . .");
+  //Ask the user to calibrate the touch screen.
+  FWo=Calibrate_Touch(FWo);
+  DBG_GEEK_READ_AND_DUMP_TOUCH_MATRIX("after touch cal");
+  DBG_STAT("done.\n");
+#else  // (0 != EVE_TOUCH_CAL_NEEDED)
+  DBG_GEEK("Display specifies no touch calibration is needed.\n");
+  //Recall the previously saved touch transform matrix -- which
+  //will typically be the identity matrix for capacitive touch
+  //screens, or an empirical matrix for resistive touch screens.
+  Force_Touch_Matrix();
+  DBG_GEEK_READ_AND_DUMP_TOUCH_MATRIX("recalled from flash");
+#endif // (0 != EVE_TOUCH_CAL_NEEDED)
+
+#if (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE)
+  //Capacitive.
+  //Set multi-touch mode. You gots to do this _after_ the calibration.
+  EVE_REG_Write_8(EVE_REG_CTOUCH_EXTENDED, EVE_CTOUCH_MODE_EXTENDED);
+  DBG_GEEK("Multi-touch enabled.\n");
+#endif // (EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE)
+
+#if ((EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_FT5316))
+  //For some reason, the combination of the BT817 and the
+  //FT5316 leave the screen in a "touched" state at this
+  //point. It does not matter if the calibration has
+  //been called or if the default FT5316 cal is used.
+  //Empirically determined, resetting the touch
+  //engine seems to fix it.
+  EVE_REG_Write_8(EVE_REG_CPURESET, 2); //touch stopped
+  delay(1);
+  EVE_REG_Write_8(EVE_REG_CPURESET, 0); //all running
+  delay(1);
+  DBG_GEEK("FT5316 touch device reset.\n");
+#endif // ((EVE_TOUCH_TYPE==EVE_TOUCH_CAPACITIVE) && (EVE_TOUCH_CAP_DEVICE==EVE_CAP_DEV_FT5316))
+
+  DBG_GEEK("Waiting for no touch . . .");
+  //Wait for the user to get their finger off the display--except
+  //the cal does not exit until the finger is up -- so why does
+  //this loop get executed up to ~ 85 times (for capacitive with
+  //Goodix)? Removing this loop gives an initial, invalid, "false
+  //touch" when the touch is read in the main loop. Very odd.
+  //It does not hurt for any other controller.
+  uint8_t
+    points_touched_mask;  
+  int16_t
+    x_points[5];
+  int16_t
+    y_points[5];    
+#if (DEBUG_LEVEL == DEBUG_GEEK)
+  uint32_t
+    touch_release_polls;
+  touch_release_polls=0;
+#endif // (DEBUG_LEVEL != DEBUG_NONE)
+  do
+    {
+    //Read the touch screen.
+    points_touched_mask=Read_Touch(x_points,y_points);
+#if (DEBUG_LEVEL == DEBUG_GEEK)
+    touch_release_polls++;
+    delay(1);
+#endif // (DEBUG_LEVEL != DEBUG_NONE)
+    } while(0 != points_touched_mask);
+  DBG_GEEK(" done. Polled %ld times(mS).\n",touch_release_polls);
+#endif //  (EVE_TOUCH_TYPE != EVE_TOUCH_NONE)
   //Signal success.
   return(0);
+  }
+//===========================================================================
+#if (0 != PROGRAM_FLASH_FROM_USD)
+#if ((EVE_DEVICE == BT815) ||(EVE_DEVICE == BT816))
+// zlib compressed unified.blob Thursday, ‎August ‎13, ‎2020, ‏‎11:24:18 AM
+// from Eve Asset Builder v2.1.0
+// C:\Users\Public\Documents\EVE Asset Builder\flash_support\bt815_6\unified.blob
+const uint8_t flash_blob[320] PROGMEM =
+  {
+  0x78,0x9C,0x2B,0xB8,0xFF,0x7B,0x92,0x1C,0x23,0x03,0xC3,0x8B,0x65,0x06,0x0C,0x12,0x8C,0x02,0x0C,0x0C,0x0C,0x3F,0x6E,0x79,0x2D,0xD7,0xFA,0x8F,0x00,0x0E,0x0D,0xBD,
+  0x45,0x49,0x45,0xD1,0x66,0x19,0x0E,0x53,0x8C,0x3E,0x1A,0xFF,0x36,0x6E,0x37,0xB6,0x30,0xAB,0xB3,0x6F,0x28,0x52,0x99,0xC0,0x70,0xBB,0xE0,0x00,0xC3,0x99,0x86,0x06,
+  0x75,0x87,0x05,0xFF,0x61,0x3C,0x86,0x06,0xC1,0x03,0x22,0x0D,0xCC,0x17,0x27,0x96,0x39,0x34,0x30,0x1F,0x12,0x3C,0x3E,0xED,0xBF,0x80,0xC3,0x22,0xFB,0xE3,0x0D,0xED,
+  0x45,0x81,0x25,0x4D,0x46,0x19,0x0E,0x81,0x26,0x9D,0xF6,0x20,0x33,0x1A,0xCD,0x4A,0xCD,0xA4,0x80,0xB6,0x19,0xBA,0x49,0x28,0xB7,0x58,0x3D,0xCE,0xD6,0x9E,0x0B,0xB1,
+  0xCD,0xAD,0xE8,0xA8,0x21,0xC2,0x26,0x6E,0x86,0xAD,0xF6,0xAF,0x8B,0x4F,0x34,0x30,0x1C,0x3F,0xF5,0x9F,0xB1,0x61,0xCF,0x1A,0xE6,0x73,0x86,0x40,0x93,0x98,0x1A,0x6E,
+  0x16,0xA6,0x99,0xCD,0x05,0x8A,0x5E,0x86,0x8A,0x82,0xDC,0x98,0x66,0x76,0x08,0x28,0x72,0x0B,0x28,0xC2,0xB2,0x9F,0xF9,0x5C,0x9A,0x99,0x02,0x90,0xF7,0xEC,0x3F,0x53,
+  0xD1,0xAE,0x86,0x3D,0x0D,0x06,0x0E,0xCF,0x80,0xE2,0x1E,0x60,0xF1,0xF7,0x40,0xF1,0x7F,0x40,0xF1,0xC2,0x06,0x66,0x20,0xCD,0xD8,0x90,0x07,0x14,0x8D,0x2C,0x62,0x6C,
+  0x08,0x03,0xD2,0x57,0x8A,0x2F,0x14,0x27,0x15,0x6D,0x07,0xDA,0x91,0x54,0xA4,0xD0,0xF0,0xA0,0xB8,0xA9,0x48,0xDC,0x6C,0x83,0xD9,0x3E,0xFB,0x05,0xDC,0x91,0x1F,0xDB,
+  0x39,0x2B,0x1D,0x3E,0xEA,0x4F,0xEC,0x61,0x79,0x99,0x64,0x6E,0xD4,0x26,0xF0,0xEB,0xFF,0x28,0x18,0x05,0xA3,0x60,0x14,0x8C,0x82,0x51,0x30,0x0A,0x46,0xC1,0x28,0x18,
+  0x05,0xA3,0x60,0x14,0x8C,0x82,0x51,0x40,0x17,0xC0,0xCC,0x10,0xC1,0x18,0x85,0x07,0x94,0x97,0x85,0x18,0x09,0xFC,0xBB,0xB3,0x0B,0x9F,0x1A,0x00,0x17,0xBA,0x1E,0xE6
+  };
+#endif // ((EVE_DEVICE == BT815) ||(EVE_DEVICE == BT816))
+
+#if ((EVE_DEVICE == BT817) || (EVE_DEVICE == BT818))
+// zlib compressed unified.blob ‎Thursday, ‎August ‎13, ‎2020, ‏‎11:24:18 AM
+// from Eve Asset Builder v2.1.0
+// C:\Users\Public\Documents\EVE Asset Builder\flash_support\bt817_8\unified.blob
+const uint8_t flash_blob[799] PROGMEM =
+  {
+  0x78,0x9C,0xED,0x51,0xDB,0x4B,0x54,0x41,0x1C,0x9E,0xB3,0x63,0xF7,0x8D,0x76,0xBA,0x80,0x8A,0x76,0x23,0x38,0x10,0x15,0xED,0xE6,0x21,0x83,0x38,0x3B,0xDD,0x0C,0x34,
+  0xD8,0x20,0xA1,0x30,0x89,0x1E,0x02,0xA5,0x08,0xCF,0x71,0xAD,0xB5,0xA0,0x71,0x14,0xB3,0x1E,0x56,0x42,0xF3,0x21,0x62,0xBB,0x41,0x11,0xF9,0x50,0x41,0x37,0xB2,0xA2,
+  0x19,0x6D,0x39,0xD4,0x6E,0x1B,0x65,0x51,0x54,0x28,0x51,0x84,0x11,0x84,0x2F,0x45,0x51,0x9D,0x69,0xCE,0x39,0x2B,0xBE,0xF9,0x07,0xC4,0xF9,0x1E,0x86,0x8F,0xDF,0x7C,
+  0xF3,0xFD,0xBE,0xDF,0x6F,0x8C,0xE1,0xDF,0xDD,0x7D,0x10,0x80,0x2D,0x17,0x57,0x82,0x9B,0x30,0x04,0x00,0xF8,0xF9,0xB6,0xF2,0xF2,0x52,0x31,0x0E,0x60,0x21,0x56,0x66,
+  0x43,0x96,0x64,0x05,0x14,0x3C,0x9E,0x45,0xE1,0xC0,0x42,0x0A,0xFA,0x43,0xBC,0xFD,0x28,0x78,0xB7,0x81,0x6D,0x60,0x2A,0x1F,0xAF,0x95,0x66,0x9C,0xCA,0x09,0x8E,0xD8,
+  0x3B,0x63,0xAB,0x5D,0x28,0xF5,0x1A,0x09,0xB9,0xE7,0x54,0xF7,0xD4,0x74,0x41,0x9F,0x37,0x2A,0xB8,0x8A,0x7C,0x8C,0x20,0x36,0x56,0xF5,0x14,0x85,0x14,0x3E,0xD6,0x74,
+  0x43,0xDE,0xCF,0x37,0x67,0x9A,0x54,0x7A,0xD6,0xD9,0x49,0x16,0xA0,0x2F,0x1B,0x2B,0xF5,0x3A,0xD2,0xA0,0x17,0xC5,0xD4,0x58,0x2D,0x49,0x0E,0xA9,0x3C,0x8E,0x51,0xBA,
+  0xDD,0x16,0x14,0x0C,0x04,0x71,0x9B,0x8D,0x32,0xA3,0xEB,0x9A,0xC8,0x61,0x3D,0xC8,0x42,0x60,0x3B,0x51,0xE8,0xA7,0xFB,0x30,0xD7,0x4C,0xEA,0x48,0xB1,0x96,0xC0,0x2D,
+  0xAB,0x6A,0xB4,0x0E,0xFD,0x4C,0x64,0x91,0x36,0x4F,0x9B,0x6D,0x56,0x85,0x7B,0x48,0x84,0xB6,0x98,0x88,0x7D,0x30,0x4A,0xC2,0x0A,0x5D,0xF6,0x00,0xE6,0x12,0x66,0x33,
+  0xE9,0x21,0x87,0xC2,0x09,0x9C,0x0C,0x2F,0x58,0x95,0x92,0xDA,0x37,0x65,0xBF,0xCB,0x26,0xE5,0x53,0x28,0x32,0x45,0x10,0xF7,0xCA,0x1C,0x09,0xB3,0x5C,0xBE,0xEC,0x34,
+  0x02,0x34,0x5D,0x70,0x83,0x38,0x09,0xD2,0xF9,0x04,0x03,0x76,0x2F,0x69,0x20,0x4D,0xE4,0x9E,0x1E,0xC2,0xBD,0xE4,0xBB,0xCC,0x7B,0x5B,0xFA,0x81,0xD6,0x38,0x36,0x86,
+  0x50,0xB6,0x96,0x20,0xEB,0xA9,0x7D,0x82,0xAB,0xFC,0x06,0x41,0xE9,0x61,0xBB,0x81,0x94,0x66,0x32,0x44,0xE5,0xBD,0x04,0xB4,0xC2,0xFE,0x57,0xF2,0x4D,0x90,0x59,0xBA,
+  0xD7,0xFD,0x6E,0xBE,0x7B,0x0F,0x71,0x7A,0x95,0x98,0x95,0xBA,0x42,0x5F,0xC8,0x8C,0xE7,0xF2,0xF7,0xDF,0xDC,0xFB,0x98,0xF6,0x79,0xE3,0x1F,0xBB,0x3E,0x9C,0x92,0xFB,
+  0x37,0x18,0xC8,0xD6,0xCB,0x79,0x30,0x85,0xAF,0xBB,0xCD,0x94,0xFB,0x23,0x4E,0xAF,0x84,0x89,0xD2,0x0B,0x44,0x20,0x3F,0x6B,0x69,0x66,0x2C,0xCD,0x0F,0x03,0x59,0x73,
+  0x45,0x95,0xA9,0x72,0xC8,0x9D,0xFE,0x33,0xA2,0x4E,0xFF,0x43,0x61,0x95,0x6F,0x97,0xE9,0x56,0x88,0xB1,0x74,0x75,0x6E,0xBA,0x25,0xEE,0x6D,0xB1,0xE6,0x6D,0x4A,0xE5,
+  0x53,0xB0,0xE3,0xBB,0x5E,0x38,0x1B,0x87,0x38,0x43,0xA6,0xE0,0x1E,0x57,0xB7,0x5A,0xEA,0x20,0x77,0x7C,0xBC,0xBC,0x65,0xD1,0xA2,0x18,0x68,0xBD,0xB3,0x59,0xFE,0x18,
+  0xF7,0x58,0x1C,0x97,0x66,0xAA,0xBB,0xDC,0xBC,0x83,0x0A,0x2D,0x96,0x9A,0x95,0x64,0x97,0x58,0x1C,0x55,0x68,0x85,0xCB,0xF7,0x88,0xB0,0xE4,0x9F,0x5C,0xBE,0x57,0x54,
+  0x48,0xFE,0xC8,0xE5,0x86,0x18,0xD4,0x21,0x9F,0x26,0xFD,0x4E,0x75,0x39,0xB3,0x41,0xE9,0x77,0x75,0x7F,0x2A,0xCF,0x01,0x55,0xB9,0x82,0x55,0x4E,0xA9,0x71,0x12,0xE6,
+  0x28,0x2D,0x4F,0xC2,0x1C,0x62,0x60,0xC8,0xD9,0x4A,0xB4,0x33,0x82,0x2F,0x09,0x83,0xA1,0xEC,0x29,0xAF,0x6F,0x16,0xBE,0x4E,0xE5,0xD9,0xE8,0x3A,0xC4,0x50,0x06,0x3E,
+  0xBB,0x28,0x82,0x2C,0xC8,0x90,0xDC,0x97,0xCA,0x2F,0x45,0x21,0x9F,0x4A,0x61,0x3F,0xB2,0x8E,0x89,0x6F,0xCB,0x0D,0x0A,0xAC,0x6B,0x02,0xF2,0xCA,0x68,0x85,0x64,0x37,
+  0x25,0xFB,0xA5,0xEF,0x95,0xEC,0xAE,0x64,0x8D,0xD1,0xE9,0x6B,0x14,0x5A,0xFD,0x10,0xE6,0x76,0x48,0xBF,0x6D,0x72,0xDF,0x7D,0x2D,0x25,0x1D,0x9E,0x73,0x10,0xDB,0xA2,
+  0x28,0x3E,0xB4,0xE3,0x89,0x01,0xFB,0xFB,0xCE,0x03,0x6B,0x50,0x78,0xD3,0x4E,0xD6,0x20,0xC5,0xD7,0x60,0x0E,0x58,0xC3,0x62,0x2B,0x3D,0x62,0x7E,0x39,0xE0,0x4D,0xEE,
+  0xD4,0x17,0xB6,0x39,0xF5,0x11,0xE1,0xCD,0xEF,0x2A,0x8F,0x3B,0x95,0xEF,0x22,0x2C,0xFF,0x2F,0x40,0x2F,0x18,0x63,0xDA,0xDD,0xAD,0xC0,0xFA,0x2B,0xBC,0xDD,0x80,0xB6,
+  0x49,0x1A,0xE4,0x5F,0x35,0x1E,0xDD,0x14,0x9F,0x33,0x52,0x0F,0xF6,0x05,0xEF,0xC4,0x76,0x5E,0x39,0xBB,0x36,0x7B,0x3D,0x30,0xD2,0x7C,0x5A,0xF8,0xF0,0xE1,0xC3,0x87,
+  0x0F,0x1F,0x3E,0x7C,0xF8,0xF0,0xE1,0xE3,0x3F,0xC3,0x2D,0xB0,0x2D,0x50,0x33,0x01,0x12,0x07,0xAB,0x23,0x21,0xFB,0x7D,0xDF,0x44,0x9A,0x7F,0x63,0x94,0xA0,0xDB
+  };
+#endif // ((EVE_DEVICE == BT817) || (EVE_DEVICE == BT818))
+  
+//---------------------------------------------------------------------------
+uint16_t Write_BLOB_to_Flash_Sector_0(uint16_t FWol,
+                                      uint32_t First_Unused_RAM_G_Address,
+                                      uint32_t *Flash_Sector)
+  {
+  // Bridgetek: Let's be clear, "BLOB" stands for Binary Large OBject
+  // and 4K is not large, 320 or 799 bytes less so :-(
+  //
+  // We have the zlib compressed BLOB in our flash at flash_blob[]
+  // We need to expand that out to it's native 4K in to RAM_G first
+  //Make sure the EVE is caught up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+  //Expand the flash_blob, keep track of how big it expands to 
+  uint32_t
+    End_RAM_G_Address;
+  End_RAM_G_Address=First_Unused_RAM_G_Address;
+  FWol=EVE_Inflate_to_RAM_G(FWol,
+                            flash_blob,
+                            sizeof(flash_blob),
+                            &End_RAM_G_Address);
+  DBG_GEEK("RAM_G before flash_blob:  0x%08lX = %lu\n",First_Unused_RAM_G_Address,First_Unused_RAM_G_Address);
+  DBG_GEEK("RAM_G after flash_blob:   0x%08lX = %lu\n",End_RAM_G_Address,End_RAM_G_Address);
+  DBG_GEEK("expanded flash_blob_size: 0x%08lX = %lu\n",End_RAM_G_Address-First_Unused_RAM_G_Address,End_RAM_G_Address-First_Unused_RAM_G_Address);
+
+  //Now ask the EVE to program the 1st sector of flash with the expanded
+  //flash_blob sitting in RAMG at 
+  FWol=EVE_Cmd_Dat_3(FWol,
+                     //Command
+                     EVE_ENC_CMD_FLASHUPDATE,
+                     //destination in flash (must be 4096 byte aligned)
+                     *Flash_Sector*4096,
+                     //source in RAM_G (must be 4-byte aligned)
+                     First_Unused_RAM_G_Address,
+                     //Size (must be multiple iof 4096
+                     End_RAM_G_Address-First_Unused_RAM_G_Address);
+
+  // Update the ring buffer pointer so the coprocessor starts executing
+  EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
+  //Remember that the flash sector 0 is used
+  *Flash_Sector=1;
+  //Now wait for the coprocessor to catch up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+  return(FWol);  
+  }
+//===========================================================================
+uint16_t Inflate_uSD_File_To_Flash(uint16_t FWol,
+                                   const char *File_Name,
+                                   uint32_t First_Unused_RAM_G_Address,
+                                   uint32_t *Flash_Sector,
+                                   uint32_t *Data_Length)
+  {
+  // Outline:
+  //  * Read the compressed, 256-byte sectors from the uSD and inflate them into RAM_G
+  //  * Figure out how big the resulting data in RAM_G is
+  //  * Write the RAM_G data to flash, using 4096 byte sectors.
+  //
+  // This will use as much RAM_G as the file inflates to, but as soon as it is written
+  // to flash, the RAM_G is no longer needed and can be re-used.
+  //
+  //Since the Arduino uSD card is slow, put up a "please wait" screen.
+  FWol=EVE_Busy_SpinFF(FWol,
+                       //clear color
+                       EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
+                       //text color
+                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
+                       //spinner color
+                       EVE_ENC_COLOR_RGB(0x00,0xFF,0x00),
+                       "Reading uSD, inflating to flash: \"%s\" . . .",
+                       File_Name);
+
+  //Make sure the EVE is caught up from any previous commands
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+
+  File
+    binary_file;
+  binary_file = SD.open(File_Name,FILE_READ);    
+  if(0 == binary_file)
+    {
+    DBG_STAT("\nInflate_uSD_File_To_Flash(): Can't open \"%s\".\n",File_Name);
+    return(FWol);
+    }
+
+  //We are assuming that the entire inflated data will fit into
+  //RAM_G.
+  uint32_t
+    bytes_remaining;
+  bytes_remaining=binary_file.size();
+
+  //We need to ensure 4-byte alignment.
+  bytes_remaining=(bytes_remaining+0x03)&0xFFFFFFFC;
+  
+  DBG_GEEK("\nInflate_uSD_File_To_Flash: found \"%s\" size: %lu\n",
+           binary_file.name(),binary_file.size());
+
+  // Write the EVE_ENC_CMD_INFLATE and parameters
+  FWol=EVE_Cmd_Dat_1(FWol,
+                     //The command
+                     EVE_ENC_CMD_INFLATE,
+                     //First is 32-bit RAM_G offset.
+                     First_Unused_RAM_G_Address);
+
+  //Limited RAM on the Arduino, so use a reasonable block size
+  #define CHUNK_SIZE (256)
+  uint8_t
+    this_chunk[CHUNK_SIZE];
+  do
+    {
+    //Transfer a full chunk, or a partial chunk on the
+    //last transfer.
+    uint32_t
+      this_chunk_size;
+    if(bytes_remaining<CHUNK_SIZE)
+      {
+      this_chunk_size=bytes_remaining;
+      }
+    else
+      {
+      this_chunk_size=CHUNK_SIZE;
+      }
+
+    //Fill this_chunk from the uSD
+    binary_file.read(this_chunk,this_chunk_size);
+    //Keep track of bytes_remaining.
+    bytes_remaining-=this_chunk_size;
+    //Set the address in EVE_RAM_CMD for this block
+    _EVE_Select_and_Address((uint32_t)EVE_RAM_CMD|(uint32_t)FWol,
+                            EVE_MEM_WRITE);
+    //Pipe out this_chunk_size of data from this_chunk[]
+    //to the EVE.
+    SPI.transfer(this_chunk,this_chunk_size);
+    //Now we need to end this command.
+    SET_EVE_CS_NOT;
+    // Keep track that we sent bytes_this_block bytes.
+    FWol=(FWol+this_chunk_size)&0xFFF;
+    //OK, the data is in the EVE_RAM_CMD circular buffer, ask the chip
+    //to process it.
+    EVE_REG_Write_16(EVE_REG_CMD_WRITE, FWol);
+    //Now wait for it to catch up
+    FWol=Wait_for_EVE_Execution_Complete(FWol);
+    } // chunk loop
+  while(0 != bytes_remaining);
+  //Release the BMP file handle
+  binary_file.close();
+
+  //Get the first free address in RAM_G from after the inflated data, so
+  //we know how large the data inflated to. We only use RAM_G
+  //temporarily, as soon as the data is flashed then we do not need
+  //it in RAM_G and it can be overwritten for other uses.
+  uint32_t
+   Final_RAM_G_Address;
+  FWol=Get_RAM_G_Pointer_After_INFLATE(FWol,
+                                       &Final_RAM_G_Address);
+  //Let the caller know how many bytes in RAM_G are relevant data
+  *Data_Length=Final_RAM_G_Address-First_Unused_RAM_G_Address;
+  
+  DBG_GEEK("Inflate_uSD_File_To_Flash RAM_G: Start = %lu End = %lu Amount = %lu\n",First_Unused_RAM_G_Address,Final_RAM_G_Address,*Data_Length);
+
+  //Calculate the length of flash to write
+  uint32_t
+    flash_length;
+  flash_length=Final_RAM_G_Address-First_Unused_RAM_G_Address;
+  //Make it a multiple of the 4096 flash sector size
+  flash_length=(flash_length+0xFFF) & 0xFFFFF000;
+  DBG_GEEK("Inflate_uSD_File_To_Flash FLASH: used = %lu, sectors = %lu\n",flash_length,(flash_length >> 12));
+
+  //Now we need to tell the EVE to write the inflated data to flash.
+  FWol=EVE_Cmd_Dat_3(FWol,
+                     //Command
+                     EVE_ENC_CMD_FLASHUPDATE,
+                     //destination in flash (must be 4096 byte aligned)
+                     (*Flash_Sector)<<12,
+                     //source in RAM_G (must be 4-byte aligned)
+                     First_Unused_RAM_G_Address,
+                     //Size (must be multiple of 4096)
+                     flash_length);
+
+  // Update the ring buffer pointer so the coprocessor starts executing
+  EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
+  //Remember that we used some flash sectors
+  *Flash_Sector+=(flash_length >> 12);
+  DBG_GEEK("Next free Flash_Sector = %ld\n",*Flash_Sector);
+
+  //Now wait for the coprocessor to catch up
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+
+  FWol=EVE_Busy_StopFF(FWol,
+                       //clear color
+                       EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
+                       //text color
+                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
+                       "Done.");
+  return(FWol);  
+  }
+//===========================================================================
+uint16_t Write_uSD_File_To_Flash(uint16_t FWol,
+                                 const char *File_Name,
+                                 uint32_t First_Unused_RAM_G_Address,
+                                 uint32_t *Flash_Sector,
+                                 uint32_t *Data_Length)
+  {
+  // Outline:
+  //  * Read the 256-byte sectors from the uSD into RAM_G
+  //  * Write the RAM_G data to flash, using 4096 byte sectors.
+  //
+  // This will use 4096 RAM_G, but as soon as it is written
+  // to flash, the RAM_G is no longer needed and can be re-used.
+  FWol=EVE_Busy_SpinFF(FWol,
+                       //clear color
+                       EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
+                       //text color
+                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
+                       //spinner color
+                       EVE_ENC_COLOR_RGB(0x00,0xFF,0x00),
+                       "Reading uSD, writing to flash: \"%s\" . . .",
+                       File_Name);
+
+  //Make sure the EVE is caught up from any previous commands
+  FWol=Wait_for_EVE_Execution_Complete(FWol);
+    
+  DBG_GEEK("\n");
+  File
+    binary_file;
+  binary_file = SD.open(File_Name,FILE_READ);    
+  if(0 == binary_file)
+    {
+    DBG_STAT("  Write_uSD_File_To_Flash(): Can't open \"%s\".\n",File_Name);
+    return(FWol);
+    }
+
+  //Here would be a good place to do sanity checks with the size
+  //of the file vs remaining RAM_G space. You would have to pass
+  //in the available RAM_G.
+  uint32_t
+    RAM_G_Address;
+  RAM_G_Address=First_Unused_RAM_G_Address;
+
+  uint32_t
+    bytes_remaining;
+  bytes_remaining=binary_file.size();
+  //Let the caller know how much of the flash is good data.
+  *Data_Length=bytes_remaining;
+  DBG_GEEK("  Write_uSD_File_To_Flash: found %s size: %lu\n",
+           binary_file.name(),binary_file.size());
+  //Limited RAM on the Arduino, so use a reasonable block size
+  #define CHUNK_SIZE (256)
+  uint8_t
+    this_chunk[CHUNK_SIZE];
+  //We need to write 16 of the 265 byte chunks (4096 bytes) to RAM_G
+  //then we need to write those 4096 bytes to one flash sector.
+  uint32_t
+    flash_sector_bytes;
+  flash_sector_bytes=0;
+  do
+    {
+    //chunk loop
+    //Transfer a full chunk, or a partial chunk on the
+    //last transfer.
+    uint16_t
+      this_chunk_size;
+    if(bytes_remaining<CHUNK_SIZE)
+      {
+      this_chunk_size=bytes_remaining;
+      //This is the last chunk, force a flash write.
+      flash_sector_bytes=4096;
+      }
+    else
+      {
+      this_chunk_size=CHUNK_SIZE;
+      flash_sector_bytes+=CHUNK_SIZE;
+      }
+    //Fill this_chunk from the uSD
+    binary_file.read(this_chunk,this_chunk_size);
+    //Keep track of bytes_remaining. This frees up this_chunk_size
+    //so we can use it as a byte counter below.
+    bytes_remaining-=this_chunk_size;
+
+    //Now write this_chunk_size bytes of this_chunk[] to
+    //the EVE RAM_G
+    //Select the EVE and send the 24-bit address and operation flag.
+    _EVE_Select_and_Address(RAM_G_Address,EVE_MEM_WRITE);
+    //Remember that we put this_chunk_size data in RAM_G
+    RAM_G_Address+=this_chunk_size;
+    //Pipe out this_chunk_size of data from this_chunk[]
+    //to the EVE.
+    SPI.transfer(this_chunk,this_chunk_size);
+    //De-select the EVE
+    SET_EVE_CS_NOT;
+
+    //Check to see if we need to write this flash sector.
+    if(4096 <= flash_sector_bytes)
+      {
+      //Write this flash sector
+      FWol=EVE_Cmd_Dat_3(FWol,
+                         //Command
+                         EVE_ENC_CMD_FLASHUPDATE,
+                         //destination in flash (must be 4096 byte aligned)
+                         (*Flash_Sector)<<12,
+                         //source in RAM_G (must be 4-byte aligned)
+                         First_Unused_RAM_G_Address,
+                         //Size (must be multiple of 4096)
+                         4096);
+      // Update the ring buffer pointer so the coprocessor starts executing
+      EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
+
+      //Remember that we used some flash sectors
+      (*Flash_Sector)++;
+      DBG_STAT("Next free Flash_Sector = %ld, bytes remaining = %ld\n",*Flash_Sector,bytes_remaining);
+
+      //Now wait for the coprocessor to catch up
+      FWol=Wait_for_EVE_Execution_Complete(FWol);
+
+      //Reset RAM_G address
+      RAM_G_Address=First_Unused_RAM_G_Address;
+      //Reset offset within the flash sector
+      flash_sector_bytes=0;
+      } // write a flash sector
+    } // chunk loop
+  while(0 != bytes_remaining);
+  //Release the BMP file handle
+  binary_file.close();
+
+  FWol=EVE_Busy_StopFF(FWol,
+                       //clear color
+                       EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
+                       //text color
+                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
+                       "Done.");
+
+  return(FWol);  
+  }
+#endif //PROGRAM_FLASH_FROM_USD
+//============================================================================
+uint16_t EVE_Set_Bitmap(uint16_t FWol,
+                        uint8_t  handle,
+                        uint32_t source,
+                        uint16_t format,
+                        uint16_t width,
+                        uint16_t height,
+                        uint16_t colstride,
+                        uint16_t rowstride,
+                        uint8_t  filter,
+                        uint8_t  wrapx,
+                        uint8_t  wrapy)
+  {
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_HANDLE(handle));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_SOURCE(source));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_EXT_FORMAT(format));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_LAYOUT_H(colstride>>10,
+                                             rowstride>>9));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_LAYOUT(EVE_GLFORMAT,
+                                           colstride,
+                                           rowstride));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_SIZE_H(width>>9,
+                                           height>>9));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_SIZE(filter,
+                                         wrapx,
+                                         wrapy,
+                                         width,
+                                         height));
+  return(FWol);
   }
 //===========================================================================

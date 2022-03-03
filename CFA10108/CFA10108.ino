@@ -12,10 +12,7 @@
 //
 //  http://brtchip.com/wp-content/uploads/Support/Documentation/Application_Notes/ICs/EVE/AN_275_FT800_Example_with_Arduino.pdf
 //
-// I have added support for the EVE series.
-//
-// The write offset into the write buffer is passed into and back from
-// functions rather than being a global.
+// I have added support for the BridgeTek BT817 EVE series.
 //
 // In the spirit of AN_275:
 //
@@ -31,13 +28,19 @@
 // Plus, you probably don't have RAM and flash for all those fancy
 // programming layers.
 //
-// A nod to Rudolf R and company over at
+// The FTDI write offset (FWo) into the FT813's circular write write buffer
+// is passed into and back from functions (FWol = FWo local) rather than being
+// a global. Keeping track of the write offset avoids having to read that
+// information from the FT813 before every SPI transaction.
+//
+// A nod to Rudolph R and company over at
 //   https://www.mikrocontroller.net/topic/395608
 //   https://github.com/RudolphRiedel/FT800-FT813
-// for help understanding that the EVE needs a 24-bit (full color)
-// PNG, not an 8-bit paletized PNG.
+// for deep insight and lots of help in increasing our understanding
+// of the fiddly bits of the EVE hardware and software architecture.
 //
-//  2020-07-30 Brent A. Crosby / Crystalfontz
+// 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
+// https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
 //---------------------------------------------------------------------------
 //This is free and unencumbered software released into the public domain.
 //
@@ -91,19 +94,14 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <stdarg.h>
-// Definitions for our display.
+// Definitions for our circuit board and display.
 #include "CFA10108_defines.h"
-#include "CFAF1024600xx_070S.h"
-// Transparent Rotating Logo for this display
-#include "CFAF1024600xx_070S_Splash_PNG.h"
-#include "CFAF1024600xx_070S_Splash_ARGB2.h"
 
 #if BUILD_SD
 #include <SD.h>
 #endif
 
 // The very simple EVE library files
-#include "EVE_defines.h"
 #include "EVE_base.h"
 #include "EVE_draw.h"
 
@@ -116,7 +114,7 @@ void setup()
 #if (DEBUG_LEVEL != DEBUG_NONE)    
   // Initialize UART for debugging messages
   Serial.begin(115200);
-#endif
+#endif // (DEBUG_LEVEL != DEBUG_NONE)
   DBG_STAT("Begin\n");
 
   //Initialize GPIO port states
@@ -180,7 +178,7 @@ void loop()
   uint16_t
     FWo;
   FWo = EVE_REG_Read_16(EVE_REG_CMD_WRITE);
-  DBG_GEEK("Initial Offest Read: 0x%04X = %u\n",FWo ,FWo);
+  DBG_GEEK("Initial Offset Read: 0x%04X = %u\n",FWo ,FWo);
 
   //Keep track of the RAM_G memory allocation
   uint32_t
@@ -188,41 +186,84 @@ void loop()
   RAM_G_Unused_Start=0;
   DBG_GEEK("Initial RAM_G: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
 
+  // We need to keep track of the bitmap handles and where they are used.
+  //
+  // By default, bitmap handles 16 to 31 are used for built-in font and 15
+  // is used as scratch bitmap handle by co-processor engine commands
+  // CMD_GRADIENT, CMD_BUTTON and CMD_KEYS.
+  //
+  // For whatever reason, I am going to allocate handles from 14 to 0.
+  // 10 handles are used for the Igor demo  
+  uint8_t
+    next_bitmap_handle_available;
+  next_bitmap_handle_available=4;
+  
+  DBG_GEEK("EVE_Initialize_Flash() . . . ");
+  FWo=EVE_Initialize_Flash(FWo);
+  DBG_GEEK("done.\n");
+  uint8_t
+    flash_status;
+  flash_status = EVE_REG_Read_8(EVE_REG_FLASH_STATUS);
+  DBG_GEEK_Decode_Flash_Status(flash_status);
+#if (0 != PROGRAM_FLASH_FROM_USD)
+  //Keep track of the current write pointer into flash.
+  uint32_t
+    Flash_Sector;
+  Flash_Sector=0;
+  //Load the BLOB & write our image data to the flash from
+  //the uSD card. This only needs to be executed once. It
+  //uses RAM_G as scratch temporary memory, but does not
+  //allocate any RAM_G.
+  FWo= Initialize_Flash_From_uSD(FWo,
+                                 RAM_G_Unused_Start,
+                                 &Flash_Sector);
+#else  // (0 != PROGRAM_FLASH_FROM_USD)
+  DBG_GEEK("Not programming flash.\n");
+#endif // (0 != PROGRAM_FLASH_FROM_USD)
 #if (0 != BOUNCE_DEMO)
   DBG_STAT("Initialize_Bounce_Demo() . . .");
   Initialize_Bounce_Demo();
   DBG_STAT(" done.\n");
-#endif // BOUNCE_DEMO
+#endif // (0 != BOUNCE_DEMO)
 
 #if (0 != LOGO_DEMO)
   DBG_STAT("Initialize_Logo_Demo() . . .");
-  FWo=Initialize_Logo_Demo(FWo,&RAM_G_Unused_Start);
+  FWo=Initialize_Logo_Demo(FWo,&RAM_G_Unused_Start,next_bitmap_handle_available);
+  //Keep track that we used a bitmap handle
+  next_bitmap_handle_available--;
   DBG_STAT("  done.\n");
   DBG_GEEK("RAM_G after logo: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
-#endif // LOGO_DEMO
+#endif // (0 != LOGO_DEMO)
+
+//For the Igor demo, load the button and icon bitmaps from flash into RAM_G
+//The BT817 runs into flash bandwidth limits trying to display multiple items
+//from flash on one line. We can still leave the large background image displaying
+//from flash, but the buttons and icons will come from the mush faster RAM_G
 
 #if (0 != BMP_DEMO)
   DBG_STAT("Initialize_Bitmap_Demo() . . .");
   FWo=Initialize_Bitmap_Demo(FWo,&RAM_G_Unused_Start);
   DBG_STAT("  done.\n");
   DBG_GEEK("RAM_G after bitmap: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
-#endif //BMP_DEMO
+#endif //(0 != BMP_DEMO)
 
 #if (0 != SOUND_DEMO)
   DBG_STAT("Initialize_Sound_Demo() . . .");
   FWo=Initialize_Sound_Demo(FWo,&RAM_G_Unused_Start);
   DBG_STAT("  done.\n");
   DBG_GEEK("RAM_G after sound: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
-#endif // SOUND_DEMO
+#endif // (0 != SOUND_DEMO)
 
 #if (0 != MARBLE_DEMO)
   DBG_STAT("Initialize_Marble_Demo() . . .");
-  FWo=Initialize_Marble_Demo(FWo,&RAM_G_Unused_Start);
+  FWo=Initialize_Marble_Demo(FWo,&RAM_G_Unused_Start,next_bitmap_handle_available);
+  //Keep track that we used a bitmap handle
+  next_bitmap_handle_available--;
   DBG_STAT("  done.\n");
   DBG_GEEK("RAM_G after marble: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
 #endif //MARBLE_DEMO
 
-#if TOUCH_DEMO
+#if (0 != TOUCH_DEMO)
   //Bitmask of valid points in the array
   uint8_t
     points_touched_mask;
@@ -245,12 +286,12 @@ void loop()
 #if (0 != EVE_TOUCH_CAL_NEEDED)
   DBG_STAT("Touch calibration . . .");
   //Ask the user to calibrate the touch screen.
-  FWo=Stop_Busy_Spinner_Screen(FWo,
-                               //clear color
-                               EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
-                               //text color
-                               EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
-                               F("Calibrate Touch"));
+  FWo=EVE_Busy_StopFF(FWo,
+                      //clear color
+                      EVE_ENC_CLEAR_COLOR_RGB(0x00,0x00,0xFF),
+                      //text color
+                      EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF),
+                      "Calibrate Touch");
   FWo=Calibrate_Touch(FWo);
   DBG_STAT("done.\n");
 #else  // (0 != EVE_TOUCH_CAL_NEEDED)
@@ -287,7 +328,16 @@ void loop()
     //Read the touch screen.
     points_touched_mask=Read_Touch(x_points,y_points);
     } while(0 != points_touched_mask);
-#endif // TOUCH_DEMO
+#endif // (0 != TOUCH_DEMO)
+					   
+#if (0 != VIDEO_DEMO)
+  FWo=Initialize_Video_Demo(FWo,
+                            &RAM_G_Unused_Start,
+                            next_bitmap_handle_available);
+  //Keep track that we used a bitmap handle
+  next_bitmap_handle_available--;
+  DBG_GEEK("RAM_G after video: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
+#endif // (0 != VIDEO_DEMO)
 
   DBG_STAT("Initialization complete, entering main loop.\n");
 
@@ -319,119 +369,188 @@ void loop()
     Start_Sound_Demo_Playing();
 #endif //SOUND_DEMO
 
-    //========== START THE EVE_ENC_DISPLAY LIST ==========
+    //========== START THE DISPLAY LIST ==========
     // Start the display list
     FWo=EVE_Cmd_Dat_0(FWo, (EVE_ENC_CMD_DLSTART));
+
   
     // Set the default clear color to black
     FWo=EVE_Cmd_Dat_0(FWo, EVE_ENC_CLEAR_COLOR_RGB(0,0,0));
+
     // Clear the screen - this and the previous prevent artifacts between lists
     FWo=EVE_Cmd_Dat_0(FWo,
                         EVE_ENC_CLEAR(1 /*CLR_COL*/,1 /*CLR_STN*/,1 /*CLR_TAG*/));
-    //========== ADD GRAPHIC ITEMS TO THE EVE_ENC_DISPLAY LIST ==========
+    //========== ADD GRAPHIC ITEMS TO THE DISPLAY LIST ==========
     //Fill background with white
     FWo=EVE_Filled_Rectangle(FWo,
                              0,0,LCD_WIDTH-1,LCD_HEIGHT-1);
 #if (0 != BMP_DEMO)
-    FWo=Add_Bitmap_To_Display_List(FWo);
+    //Build up the Igor Demo screen
+    FWo=Add_Flash_Bitmap_To_Display_List(FWo,
+                                         BMP_HNDL_BACKGRND, //bitmap handle
+                                         0,    // x_pos,
+                                         0,    // y_pos,
+                                         1024, // x_siz,
+                                         600,  // y_siz,
+                                         F_SEC_BACKGRND_A8Z, // flash_sector,
+                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                         BMP_HNDL_HOME, //bitmap handle
+                                         903,   // x_pos,
+                                         122,   // y_pos,
+                                         90,    // x_siz,
+                                         90,    // y_siz,
+                                         RAM_G_i_home_a8z, // ram_g_address,
+                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                         BMP_HNDL_FOLD, //bitmap handle
+                                         903,   // x_pos,
+                                         212,   // y_pos,
+                                         90,    // x_siz,
+                                         90,    // y_siz,
+                                         RAM_G_i_fold_a8z, // ram_g_address,
+                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                         BMP_HNDL_DISK, //bitmap handle
+                                         903,   // x_pos,
+                                         302,   // y_pos,
+                                         90,    // x_siz,
+                                         90,    // y_siz,
+                                         RAM_G_i_disk_a8z, // ram_g_address,
+                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                         BMP_HNDL_GEAR, //bitmap handle
+                                         903,   // x_pos,
+                                         392,   // y_pos,
+                                         90,    // x_siz,
+                                         90,    // y_siz,
+                                         RAM_G_i_gear_a8z, // ram_g_address,
+                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+                                         
 #endif // BMP_DEMO
+                                         
 
 #if (0 != TOUCH_DEMO)
     //See if we are touched at all.
-    if(0 != points_touched_mask)
+//    if(0 != points_touched_mask)
       {
-      //Loop through the possible touch points
-      uint8_t
-        mask;
-      mask=0x01;
-      for(uint8_t i=0;i<5;i++)
-        {
-        if(0 != (points_touched_mask&mask))
+      //We only care about the first touch
+//       if(0 != (points_touched_mask&0x01))
           {
-          //This code loops through all the points touched
-          static uint32_t colors[5]=
+          uint32_t
+            ram_g;
+          //RAM_G_bi_*_a8z = idle
+          //RAM_G_bs_*_a8z = selected
+          //Is the dog touched?
+          if(( 55 < x_points[0])&&(x_points[0] < 406) && 
+             (127 < y_points[0])&&(y_points[0] < 337))
             {
-            EVE_ENC_COLOR_RGB(0x00,0x00,0xFF),
-            EVE_ENC_COLOR_RGB(0x00,0xFF,0x00),
-            EVE_ENC_COLOR_RGB(0xFF,0x00,0x00),
-            EVE_ENC_COLOR_RGB(0xFF,0x00,0xFF),
-            EVE_ENC_COLOR_RGB(0xFF,0xFF,0x00)
-            };
-#if (0 != MARBLE_DEMO)
-          //If the marble is loaded, use it for the first touch point.
-          if(0 == i)
-            {
-            Force_Marble_Position(x_points[i]*16,y_points[i]*16);
-            FWo=Add_Marble_To_Display_List(FWo);
-#if (0!=DEBUG_COPROCESSOR_RESET)
-            //Test code to crash coprocessor ever other time it is called --
-            //for testing Reset_EVE_Coprocessor()
-            DBG_STAT("Initialize_Logo_Demo() . . .");
-            FWo=Initialize_Logo_Demo(FWo,&RAM_G_Unused_Start);
-            DBG_STAT("  done.\n");
-#endif // (0!=DEBUG_COPROCESSOR_RESET)
+            ram_g=RAM_G_bs_dog_a8z;
             }
           else
             {
-#endif // (0 != MARBLE_DEMO)
-            FWo=EVE_Cmd_Dat_0(FWo,
-                                colors[i]);
-            // Make it solid
-            FWo=EVE_Cmd_Dat_0(FWo,
-                                EVE_ENC_COLOR_A(0xFF));
-            // Draw the touch dot -- a 60px point (filled circle)
-            FWo=EVE_Point(FWo,
-                            x_points[i]*16,
-                            y_points[i]*16,
-                            60*16);
-#if (0 != MARBLE_DEMO)
+            ram_g=RAM_G_bi_dog_a8z;
             }
-#endif // (0 != MARBLE_DEMO)
-          //Tag the touch point with magenta text to show off EVE_PrintF.
-          FWo=EVE_Cmd_Dat_0(FWo,
-                              EVE_ENC_COLOR_RGB(0xFF,0x00,0xFF));
-          //MOve the the text out from under the user's finger
-          int16_t
-            xoffset;
-          int16_t
-            yoffset;
-          if(x_points[i] < (LCD_WIDTH/2))
-             {
-             xoffset=160; 
-             }
+          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                               BMP_HNDL_DOG, //bitmap handle
+                                               53,    // x_pos,
+                                               125,   // y_pos,
+                                               356,   // x_siz,
+                                               215,   // y_siz,
+                                               ram_g, // ram_g_address,
+                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+          //Is the cat touched?
+          if((427 < x_points[0])&&(x_points[0] < 778) && 
+             (127 < y_points[0])&&(y_points[0] < 337))
+            {
+            ram_g=RAM_G_bs_cat_a8z;
+            }
           else
-             {
-             xoffset=-160;
-             }
-          if(y_points[i] < (LCD_HEIGHT/2))
-             {
-             yoffset=80; 
-             }
+            {
+            ram_g=RAM_G_bi_cat_a8z;
+            }
+          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                               BMP_HNDL_CAT, //bitmap handle
+                                               425,   // x_pos,
+                                               125,   // y_pos,
+                                               356,   // x_siz,
+                                               215,   // y_siz,
+                                               ram_g, // ram_g_address,
+                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+          //Is the horse touched?
+          if(( 55 < x_points[0])&&(x_points[0] < 406) && 
+             (356 < y_points[0])&&(y_points[0] < 556))
+            {
+            ram_g=RAM_G_bs_horse_a8z;
+            }
           else
-             {
-             yoffset=-80;
-             }
-          //Put the text into the display list
-          FWo=EVE_PrintF(FWo,
-                         x_points[i]+xoffset,
-                         y_points[i]+yoffset,
-                         25,         //Font
-                         EVE_OPT_CENTER, //Options
-                         "T[%d]@(%d,%d)",
-                         i+1,
-                         x_points[i],
-                         y_points[i]);
-                      
+            {
+            ram_g=RAM_G_bi_horse_a8z;
+            }
+          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                               BMP_HNDL_HORSE, //bitmap handle
+                                               53,    // x_pos,
+                                               354,   // y_pos,
+                                               356,   // x_siz,
+                                               215,   // y_siz,
+                                               ram_g, // ram_g_address,
+                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+          //Is the bird touched?
+          if((427 < x_points[0])&&(x_points[0] < 778) && 
+             (356 < y_points[0])&&(y_points[0] < 556))
+            {
+            ram_g=RAM_G_bs_bird_a8z;
+            }
+          else
+            {
+            ram_g=RAM_G_bi_bird_a8z;
+            }
+          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                               BMP_HNDL_BIRD, //bitmap handle
+                                               425,   // x_pos,
+                                               354,   // y_pos,
+                                               356,   // x_siz,
+                                               215,   // y_siz,
+                                               ram_g, // ram_g_address,
+                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+
+          //Is the battery icon touched?
+static uint32_t
+  battery_level=3;
+ 
+          if((903 < x_points[0])&&(x_points[0] < 992) && 
+             (485 < y_points[0])&&(y_points[0] < 574))
+            {
+            if(battery_level<5)
+              {
+              battery_level++;
+              }
+            else
+              {
+              battery_level=0;
+              }
+            }
+          if(battery_level==0)ram_g=RAM_G_i_bat_0_a8z;
+          if(battery_level==1)ram_g=RAM_G_i_bat_1_a8z;
+          if(battery_level==2)ram_g=RAM_G_i_bat_2_a8z;
+          if(battery_level==3)ram_g=RAM_G_i_bat_3_a8z;
+          if(battery_level==4)ram_g=RAM_G_i_bat_4_a8z;
+          if(battery_level==5)ram_g=RAM_G_i_bat_5_a8z;
+          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
+                                               BMP_HNDL_BAT, //bitmap handle
+                                               903,   // x_pos,
+                                               482,   // y_pos,
+                                               90,    // x_siz,
+                                               90,    // y_siz,
+                                               ram_g, // ram_g_address,
+                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
           }
-        mask<<=1;
-#if (0 != MANUAL_BACKLIGHT_DEBUG)
-        //Set the backlight brightness based on the first touch point.
-        if(0 != (0x01 & points_touched_mask))
-          {
-          FWo=Set_Backlight_From_Touch(FWo,x_points[0], LCD_WIDTH);
-          }
-#endif // (0 != MANUAL_BACKLIGHT_DEBUG)
-        }
       }
 #endif // (0 != TOUCH_DEMO)
 
@@ -452,6 +571,13 @@ void loop()
     FWo=Add_Bounce_To_Display_List( FWo);
 #endif //BOUNCE_DEMO
 
+#if (0 != VIDEO_DEMO)
+#if (0 != TOUCH_DEMO)
+    FWo=Add_Video_To_Display_List(FWo,points_touched_mask,x_points,y_points);
+#else // (0 != TOUCH_DEMO)
+    FWo=Add_Video_To_Display_List(FWo);
+#endif // (0 != TOUCH_DEMO)
+#endif // (0 != VIDEO_DEMO)
 #if (0 != LOGO_DEMO)
     FWo=Add_Logo_To_Display_List(FWo);
 #endif // (0 != LOGO_DEMO)
@@ -471,7 +597,11 @@ void loop()
       }
 #endif // (0 != REMOTE_BACKLIGHT_DEBUG)
 
-    //========== FINSH AND SHOW THE EVE_ENC_DISPLAY LIST ==========
+#if (0 != VIDEO_DEMO)
+    //Move the video to the next 30Hz frame 
+    FWo=Update_Video_Frame(FWo);
+#endif // (0 != VIDEO_DEMO)
+    //========== FINSH AND SHOW THE DISPLAY LIST ==========
     // Instruct the graphics processor to show the list
     FWo=EVE_Cmd_Dat_0(FWo, EVE_ENC_DISPLAY());
     // Make this list active
