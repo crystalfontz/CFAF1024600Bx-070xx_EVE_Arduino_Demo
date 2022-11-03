@@ -193,11 +193,9 @@ void loop()
   // CMD_GRADIENT, CMD_BUTTON and CMD_KEYS.
   //
   // For whatever reason, I am going to allocate handles from 14 to 0.
-  // 10 handles are used for the Igor demo  
   uint8_t
     next_bitmap_handle_available;
-  next_bitmap_handle_available=4;
-  
+  next_bitmap_handle_available=14;
   DBG_GEEK("EVE_Initialize_Flash() . . . ");
   FWo=EVE_Initialize_Flash(FWo);
   DBG_GEEK("done.\n");
@@ -235,14 +233,11 @@ void loop()
   DBG_GEEK("RAM_G after logo: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
 #endif // (0 != LOGO_DEMO)
 
-//For the Igor demo, load the button and icon bitmaps from flash into RAM_G
-//The BT817 runs into flash bandwidth limits trying to display multiple items
-//from flash on one line. We can still leave the large background image displaying
-//from flash, but the buttons and icons will come from the mush faster RAM_G
-
 #if (0 != BMP_DEMO)
   DBG_STAT("Initialize_Bitmap_Demo() . . .");
-  FWo=Initialize_Bitmap_Demo(FWo,&RAM_G_Unused_Start);
+  FWo=Initialize_Bitmap_Demo(FWo,next_bitmap_handle_available);
+  //Keep track that we used a bitmap handle
+  next_bitmap_handle_available--;
   DBG_STAT("  done.\n");
   DBG_GEEK("RAM_G after bitmap: 0x%08lX = %lu\n",RAM_G_Unused_Start,RAM_G_Unused_Start);
 #endif //(0 != BMP_DEMO)
@@ -385,172 +380,92 @@ void loop()
     FWo=EVE_Filled_Rectangle(FWo,
                              0,0,LCD_WIDTH-1,LCD_HEIGHT-1);
 #if (0 != BMP_DEMO)
-    //Build up the Igor Demo screen
-    FWo=Add_Flash_Bitmap_To_Display_List(FWo,
-                                         BMP_HNDL_BACKGRND, //bitmap handle
-                                         0,    // x_pos,
-                                         0,    // y_pos,
-                                         1024, // x_siz,
-                                         600,  // y_siz,
-                                         F_SEC_BACKGRND_A8Z, // flash_sector,
-                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                         BMP_HNDL_HOME, //bitmap handle
-                                         903,   // x_pos,
-                                         122,   // y_pos,
-                                         90,    // x_siz,
-                                         90,    // y_siz,
-                                         RAM_G_i_home_a8z, // ram_g_address,
-                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                         BMP_HNDL_FOLD, //bitmap handle
-                                         903,   // x_pos,
-                                         212,   // y_pos,
-                                         90,    // x_siz,
-                                         90,    // y_siz,
-                                         RAM_G_i_fold_a8z, // ram_g_address,
-                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                         BMP_HNDL_DISK, //bitmap handle
-                                         903,   // x_pos,
-                                         302,   // y_pos,
-                                         90,    // x_siz,
-                                         90,    // y_siz,
-                                         RAM_G_i_disk_a8z, // ram_g_address,
-                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-    FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                         BMP_HNDL_GEAR, //bitmap handle
-                                         903,   // x_pos,
-                                         392,   // y_pos,
-                                         90,    // x_siz,
-                                         90,    // y_siz,
-                                         RAM_G_i_gear_a8z, // ram_g_address,
-                                         EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-                                         
+    FWo=Add_Bitmap_To_Display_List(FWo);
 #endif // BMP_DEMO
-                                         
 
 #if (0 != TOUCH_DEMO)
     //See if we are touched at all.
-//    if(0 != points_touched_mask)
+    if(0 != points_touched_mask)
       {
-      //We only care about the first touch
-//       if(0 != (points_touched_mask&0x01))
+      //Loop through the possible touch points
+      uint8_t
+        mask;
+      mask=0x01;
+      for(uint8_t i=0;i<5;i++)
+        {
+        if(0 != (points_touched_mask&mask))
           {
-          uint32_t
-            ram_g;
-          //RAM_G_bi_*_a8z = idle
-          //RAM_G_bs_*_a8z = selected
-          //Is the dog touched?
-          if(( 55 < x_points[0])&&(x_points[0] < 406) && 
-             (127 < y_points[0])&&(y_points[0] < 337))
+          //This code loops through all the points touched
+          static uint32_t colors[5]=
             {
-            ram_g=RAM_G_bs_dog_a8z;
-            }
+            EVE_ENC_COLOR_RGB(0x00,0x00,0xFF),
+            EVE_ENC_COLOR_RGB(0x00,0xFF,0x00),
+            EVE_ENC_COLOR_RGB(0xFF,0x00,0x00),
+            EVE_ENC_COLOR_RGB(0xFF,0x00,0xFF),
+            EVE_ENC_COLOR_RGB(0xFF,0xFF,0x00)
+            };
+#if (0!=DEBUG_COPROCESSOR_RESET)
+            //Test code to crash coprocessor ever other time it is called --
+            //for testing Reset_EVE_Coprocessor()
+            DBG_STAT("Initialize_Logo_Demo() . . .");
+            FWo=Initialize_Logo_Demo(FWo,&RAM_G_Unused_Start);
+            DBG_STAT("  done.\n");
+#endif // (0!=DEBUG_COPROCESSOR_RESET)
+            FWo=EVE_Cmd_Dat_0(FWo,
+                                colors[i]);
+            // Make it solid
+            FWo=EVE_Cmd_Dat_0(FWo,
+                                EVE_ENC_COLOR_A(0xFF));
+            // Draw the touch dot -- a 60px point (filled circle)
+            FWo=EVE_Point(FWo,
+                            x_points[i]*16,
+                            y_points[i]*16,
+                            60*16);
+          //Tag the touch point with magenta text to show off EVE_PrintF.
+          FWo=EVE_Cmd_Dat_0(FWo,
+                              EVE_ENC_COLOR_RGB(0xFF,0x00,0xFF));
+          //Move the the text out from under the user's finger
+          int16_t
+            xoffset;
+          int16_t
+            yoffset;
+          if(x_points[i] < (LCD_WIDTH/2))
+             {
+             xoffset=160; 
+             }
           else
-            {
-            ram_g=RAM_G_bi_dog_a8z;
-            }
-          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                               BMP_HNDL_DOG, //bitmap handle
-                                               53,    // x_pos,
-                                               125,   // y_pos,
-                                               356,   // x_siz,
-                                               215,   // y_siz,
-                                               ram_g, // ram_g_address,
-                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-          //Is the cat touched?
-          if((427 < x_points[0])&&(x_points[0] < 778) && 
-             (127 < y_points[0])&&(y_points[0] < 337))
-            {
-            ram_g=RAM_G_bs_cat_a8z;
-            }
+             {
+             xoffset=-160;
+             }
+          if(y_points[i] < (LCD_HEIGHT/2))
+             {
+             yoffset=80; 
+             }
           else
-            {
-            ram_g=RAM_G_bi_cat_a8z;
-            }
-          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                               BMP_HNDL_CAT, //bitmap handle
-                                               425,   // x_pos,
-                                               125,   // y_pos,
-                                               356,   // x_siz,
-                                               215,   // y_siz,
-                                               ram_g, // ram_g_address,
-                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-          //Is the horse touched?
-          if(( 55 < x_points[0])&&(x_points[0] < 406) && 
-             (356 < y_points[0])&&(y_points[0] < 556))
-            {
-            ram_g=RAM_G_bs_horse_a8z;
-            }
-          else
-            {
-            ram_g=RAM_G_bi_horse_a8z;
-            }
-          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                               BMP_HNDL_HORSE, //bitmap handle
-                                               53,    // x_pos,
-                                               354,   // y_pos,
-                                               356,   // x_siz,
-                                               215,   // y_siz,
-                                               ram_g, // ram_g_address,
-                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-          //Is the bird touched?
-          if((427 < x_points[0])&&(x_points[0] < 778) && 
-             (356 < y_points[0])&&(y_points[0] < 556))
-            {
-            ram_g=RAM_G_bs_bird_a8z;
-            }
-          else
-            {
-            ram_g=RAM_G_bi_bird_a8z;
-            }
-          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                               BMP_HNDL_BIRD, //bitmap handle
-                                               425,   // x_pos,
-                                               354,   // y_pos,
-                                               356,   // x_siz,
-                                               215,   // y_siz,
-                                               ram_g, // ram_g_address,
-                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
-
-          //Is the battery icon touched?
-static uint32_t
-  battery_level=3;
- 
-          if((903 < x_points[0])&&(x_points[0] < 992) && 
-             (485 < y_points[0])&&(y_points[0] < 574))
-            {
-            if(battery_level<5)
-              {
-              battery_level++;
-              }
-            else
-              {
-              battery_level=0;
-              }
-            }
-          if(battery_level==0)ram_g=RAM_G_i_bat_0_a8z;
-          if(battery_level==1)ram_g=RAM_G_i_bat_1_a8z;
-          if(battery_level==2)ram_g=RAM_G_i_bat_2_a8z;
-          if(battery_level==3)ram_g=RAM_G_i_bat_3_a8z;
-          if(battery_level==4)ram_g=RAM_G_i_bat_4_a8z;
-          if(battery_level==5)ram_g=RAM_G_i_bat_5_a8z;
-          FWo=Add_RAM_G_Bitmap_To_Display_List(FWo,
-                                               BMP_HNDL_BAT, //bitmap handle
-                                               903,   // x_pos,
-                                               482,   // y_pos,
-                                               90,    // x_siz,
-                                               90,    // y_siz,
-                                               ram_g, // ram_g_address,
-                                               EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR); //image_format
+             {
+             yoffset=-80;
+             }
+          //Put the text into the display list
+          FWo=EVE_PrintF(FWo,
+                         x_points[i]+xoffset,
+                         y_points[i]+yoffset,
+                         25,         //Font
+                         EVE_OPT_CENTER, //Options
+                         "T[%d]@(%d,%d)",
+                         i+1,
+                         x_points[i],
+                         y_points[i]);
+                      
           }
+        mask<<=1;
+#if (0 != MANUAL_BACKLIGHT_DEBUG)
+        //Set the backlight brightness based on the first touch point.
+        if(0 != (0x01 & points_touched_mask))
+          {
+          FWo=Set_Backlight_From_Touch(FWo,x_points[0], LCD_WIDTH);
+          }
+#endif // (0 != MANUAL_BACKLIGHT_DEBUG)
+        }
       }
 #endif // (0 != TOUCH_DEMO)
 

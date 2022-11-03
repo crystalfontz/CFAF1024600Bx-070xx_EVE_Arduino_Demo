@@ -45,44 +45,9 @@ uint16_t Add_Touch_Dot_To_Display_List(uint16_t FWol,
 #endif //(0 != TOUCH_DEMO)
 //----------------------------------------------------------------------------
 #if (0 != BMP_DEMO)
-extern uint32_t RAM_G_bi_bird_a8z;
-extern uint32_t RAM_G_bi_cat_a8z;
-extern uint32_t RAM_G_bi_dog_a8z;
-extern uint32_t RAM_G_bi_horse_a8z;
-extern uint32_t RAM_G_bs_bird_a8z;
-extern uint32_t RAM_G_bs_cat_a8z;
-extern uint32_t RAM_G_bs_dog_a8z;
-extern uint32_t RAM_G_bs_horse_a8z;
-extern uint32_t RAM_G_i_bat_0_a8z;
-extern uint32_t RAM_G_i_bat_1_a8z;
-extern uint32_t RAM_G_i_bat_2_a8z;
-extern uint32_t RAM_G_i_bat_3_a8z;
-extern uint32_t RAM_G_i_bat_4_a8z;
-extern uint32_t RAM_G_i_bat_5_a8z;
-extern uint32_t RAM_G_i_disk_a8z;
-extern uint32_t RAM_G_i_fold_a8z;
-extern uint32_t RAM_G_i_gear_a8z;
-extern uint32_t RAM_G_i_home_a8z;
-
 uint16_t Initialize_Bitmap_Demo(uint16_t FWol,
-                                uint32_t *RAM_G_Unused_Start);
-uint16_t Add_RAM_G_Bitmap_To_Display_List(uint16_t FWol,
-                                          uint32_t handle,
-                                          uint32_t x_pos,
-                                          uint32_t y_pos,
-                                          uint32_t x_siz,
-                                          uint32_t y_siz,
-                                          uint32_t ram_g_address,
-                                          uint32_t image_format);
-uint16_t Add_Flash_Bitmap_To_Display_List(uint16_t FWol,
-                                          uint32_t handle,
-                                          uint32_t x_pos,
-                                          uint32_t y_pos,
-                                          uint32_t x_siz,
-                                          uint32_t y_siz,
-                                          uint32_t flash_sector,
-                                          uint32_t image_format);
-                                          
+                                uint8_t next_bitmap_handle_available);
+uint16_t Add_Bitmap_To_Display_List(uint16_t FWol);
 #endif // (0 != BMP_DEMO)
 //----------------------------------------------------------------------------
 #if (0 != MARBLE_DEMO) //Requires uSD

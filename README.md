@@ -68,3 +68,26 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 
 ## Additional Accessories
 Additional accessories for the products can be found at the bottom of each of the product pages. This will include 30 position FFC cables, wires, and any accessory boards that are available.
+
+## Flash Opperation
+to program the built in W25Q128JVPIQ flash, set PROGRAM_FLASH_FROM_USD to (1). The program is designed to take a file called splash.a8z, bluemarb.a8z, and/or cloud.a8z.
+
+Demo files can be found in "CFA10108\uSD_Files". 
+
+To create an *.a8z file, following the below steps.
+1. create a 24-bit bmp
+2. load the bmp into [EVE Asset Builder](https://brtchip.com/toolchains/)
+3. Set the settings
+    * Use the "image Converter" tab
+    * ADD the *.bmp
+    * Set EVE Product Range: BT81X
+    * Output Format: COMPRESSSED_RGBA_ASTC_8x8_KHR
+    * Compressed: yes
+    * ASTC Preset: thorough
+    * Select CONVERT
+4. Rename the *.bin file created to splash.a8z (or bluemarb.a8z or cloud.a8z depending on the demo)
+5. Load the splash.a8z file onto the uSD connected with the Seeeduino controlling the EVE display
+6. Run the program ensuring that PROGRAM_FLASH_FROM_USD = 1
+7. Use the Serial monitor to get the values shown on lines 96-103 of CFA10108_defines.h
+8. Update lines 96-103 of CFA10108_defines.h with the new values and change PROGRAM_FLASH_FROM_USD = 0
+9. The data is stored in flash and will now show when the demos are turned on

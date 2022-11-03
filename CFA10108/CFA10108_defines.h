@@ -56,32 +56,17 @@
 // You would want to set PROGRAM_FLASH_FROM_USD once, with the uSD card
 // loaded with the appropriate files to program those images into the flash:
 // 
-// backgrnd.a8z   1,914
-// bi_bird.a8z    2,070
-// bi_cat.a8z     5,413
-// bi_dog.a8z     2,559
-// bi_horse.a8z   3,173
-// bs_bird.a8z   18,488
-// bs_cat.a8z    13,830
-// bs_dog.a8z    19,123
-// bs_horse.a8z   6,364
-// i_bat_0.a8z      214
-// i_bat_1.a8z      287
-// i_bat_2.a8z      343
-// i_bat_3.a8z      376
-// i_bat_4.a8z      396
-// i_bat_5.a8z      428
-// i_disk.a8z       925
-// i_fold.a8z       764
-// i_gear.a8z     1,047
-// i_home.a8z       882
+// bluemarb.a8z      12,665
+// splash.a8z       135,852
+// cloud.a8z        132,455
+// Ice_400.avi   13,434,514
 //
 // Once that step is complete, the uSD card should not be needed and may
 // be removed.
 //
 #define PROGRAM_FLASH_FROM_USD (0)  //uses uSD
-//
-//
+
+
 #if (0 == PROGRAM_FLASH_FROM_USD)
 // Some combinations of demos and debug messages may overflow the
 // Seeeduino / Arduino flash. The symptom will be a programming error
@@ -89,16 +74,16 @@
 //
 #define BMP_DEMO             (1)  //Images must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
-#define   BMP_SCROLL         (0)  //1=scrolling background (cloud.a8z)
+#define   BMP_SCROLL         (1)  //1=scrolling background (cloud.a8z)
                                   //0=static image (splash.a8z)
 #define SOUND_DEMO           (0)  //Uses uSD
 #define   SOUND_VOICE        (1)  //1=VOI_8K.RAW, 0=MUS_8K.RAW
 #define   SOUND_PLAY_TIMES   (1)
-#define LOGO_DEMO            (0)  //Rotating logo (the PNG or ARGB image
+#define LOGO_DEMO            (1)  //Rotating logo (the PNG or ARGB image
                                   //data is stored in the Seeeduino's flash)
-#define LOGO_PNG_0_ARGB2_1   (1)  //Compressed ARGB is 5408 bytes smaller
-#define BOUNCE_DEMO          (0)  //Ball-and-rubber-band demo.
-#define MARBLE_DEMO          (0)  //Marble must already be programmed into
+#define   LOGO_PNG_0_ARGB2_1   (1)  //Compressed ARGB is 5408 bytes smaller
+#define BOUNCE_DEMO          (1)  //Ball-and-rubber-band demo.
+#define MARBLE_DEMO          (1)  //Marble must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(bluemarb.a8z)
 #define TOUCH_DEMO           (1)
@@ -108,66 +93,17 @@
 //
 // These should have been copied from the debug console when
 // you built with PROGRAM_FLASH_FROM_USD set
-#define F_SEC_BACKGRND_A8Z  (1UL)
-#define F_LEN_BACKGRND_A8Z  (153600UL) // sectors: 38
-#define F_SEC_BI_BIRD_A8Z   (39UL)
-#define F_LEN_BI_BIRD_A8Z   (19440UL) // sectors: 5
-#define F_SEC_BI_CAT_A8Z    (44UL)
-#define F_LEN_BI_CAT_A8Z    (19440UL) // sectors: 5
-#define F_SEC_BI_DOG_A8Z    (49UL)
-#define F_LEN_BI_DOG_A8Z    (19440UL) // sectors: 5
-#define F_SEC_BI_HORSE_A8Z  (54UL)
-#define F_LEN_BI_HORSE_A8Z  (19440UL) // sectors: 5
-#define F_SEC_BS_BIRD_A8Z   (59UL)
-#define F_LEN_BS_BIRD_A8Z   (19440UL) // sectors: 5
-#define F_SEC_BS_CAT_A8Z    (64UL)
-#define F_LEN_BS_CAT_A8Z    (19440UL) // sectors: 5
-#define F_SEC_BS_DOG_A8Z    (69UL)
-#define F_LEN_BS_DOG_A8Z    (19440UL) // sectors: 5
-#define F_SEC_BS_HORSE_A8Z  (74UL)
-#define F_LEN_BS_HORSE_A8Z  (19440UL) // sectors: 5
-#define F_SEC_I_BAT_0_A8Z   (79UL)
-#define F_LEN_I_BAT_0_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_BAT_1_A8Z   (80UL)
-#define F_LEN_I_BAT_1_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_BAT_2_A8Z   (81UL)
-#define F_LEN_I_BAT_2_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_BAT_3_A8Z   (82UL)
-#define F_LEN_I_BAT_3_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_BAT_4_A8Z   (83UL)
-#define F_LEN_I_BAT_4_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_BAT_5_A8Z   (84UL)
-#define F_LEN_I_BAT_5_A8Z   (2304UL) // sectors: 1
-#define F_SEC_I_DISK_A8Z    (85UL)
-#define F_LEN_I_DISK_A8Z    (2304UL) // sectors: 1
-#define F_SEC_I_FOLD_A8Z    (86UL)
-#define F_LEN_I_FOLD_A8Z    (2304UL) // sectors: 1
-#define F_SEC_I_GEAR_A8Z    (87UL)
-#define F_LEN_I_GEAR_A8Z    (2304UL) // sectors: 1
-#define F_SEC_I_HOME_A8Z    (88UL)
-#define F_LEN_I_HOME_A8Z    (2304UL) // sectors: 1
-//Total sectors = 4096, free sectors = 4007
-//Total flash = 16777216, free flash = 16412672
-
-// For the Igor demo, I am allocating the bitmap handles statically
-#define BMP_HNDL_BACKGRND  (14)
-#define BMP_HNDL_BIRD      (13)
-#define BMP_HNDL_CAT       (12)
-#define BMP_HNDL_DOG       (11)
-#define BMP_HNDL_HORSE     (10)
-#define BMP_HNDL_BAT       (9)
-#define BMP_HNDL_DISK      (8)
-#define BMP_HNDL_FOLD      (7)
-#define BMP_HNDL_GEAR      (6)
-#define BMP_HNDL_HOME      (5)
-
-// You can set DEBUG_LEVEL to:
-//   DEBUG_NONE   (0K flash, serial not used)
-//   DEBUG_STATUS (1.4K ~ 2.5K flash)
-//   DEBUG_GEEK   (6.4K ~ 7K flash)
-// to send messages to the console (Ctrl+Shift+M) in the arduino IDE.
-#define DEBUG_LEVEL (DEBUG_GEEK)
-
+#define FLASH_SECTOR_MARBLE (1UL)
+#define FLASH_LENGTH_MARBLE (14400UL)  // sectors: 3
+#define FLASH_SECTOR_SPLASH (5UL)
+#define FLASH_LENGTH_SPLASH (153600UL) // sectors: 37
+#define FLASH_SECTOR_CLOUDS (43UL)
+#define FLASH_LENGTH_CLOUDS (153600UL) // sectors: 37
+#define FLASH_SECTOR_ICE_FPV_512x300 (81UL)
+#define FLASH_LENGTH_ICE_FPV_512x300 (13434514UL) // sectors: 3279
+//Total sectors = 4096, free sectors = 735
+//Total flash = 16777216, free flash = 3010560
+//
 #else // (0 == PROGRAM_FLASH_FROM_USD)
 //Minimal demos when programming the EVE flash so the 
 //Seeeduino / Arduino flash does not overflow
@@ -181,7 +117,7 @@
 #define LOGO_DEMO            (0)  //Rotating logo (the PNG or ARGB image
                                   //data is stored in the Seeeduino's flash)
 #define LOGO_PNG_0_ARGB2_1   (0)  //Compressed ARGB is 5408 bytes smaller
-#define BOUNCE_DEMO          (1)  //Ball-and-rubber-band demo.
+#define BOUNCE_DEMO          (0)  //Ball-and-rubber-band demo.
 #define MARBLE_DEMO          (0)  //Marble must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(bluemarb.a8z)
@@ -189,15 +125,15 @@
 #define VIDEO_DEMO           (0)  //Video must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(Ice_400.avi)
-
+#endif // (0 == PROGRAM_FLASH_FROM_USD)
+//============================================================================
+//
 // You can set DEBUG_LEVEL to:
 //   DEBUG_NONE   (0K flash, serial not used)
 //   DEBUG_STATUS (1.4K ~ 2.5K flash)
 //   DEBUG_GEEK   (6.4K ~ 7K flash)
 // to send messages to the console (Ctrl+Shift+M) in the arduino IDE.
-#define DEBUG_LEVEL (DEBUG_STATUS)
-                                  
-#endif // (0 == PROGRAM_FLASH_FROM_USD)
+#define DEBUG_LEVEL (DEBUG_GEEK)
 //============================================================================
 // Turn on uSD code if one of the demos above uses it, or we are programming
 // the flash from the uSD.

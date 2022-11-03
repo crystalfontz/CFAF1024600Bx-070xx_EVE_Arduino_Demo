@@ -59,7 +59,6 @@
 
 // Our demonstrations of various EVE functions
 #include "demos.h"
-
 //===========================================================================
 #if (0 != PROGRAM_FLASH_FROM_USD)
 uint16_t Initialize_Flash_From_uSD(uint16_t FWol,
@@ -67,81 +66,21 @@ uint16_t Initialize_Flash_From_uSD(uint16_t FWol,
                                    uint32_t *Flash_Sector)
   {
   uint32_t
-    F_Sec_backgrnd_a8z;
+    Flash_Sector_Marble;
   uint32_t
-    F_Len_backgrnd_a8z;
+    Flash_Length_Marble;
   uint32_t
-    F_Sec_bi_bird_a8z;
+    Flash_Sector_Splash;
   uint32_t
-    F_Len_bi_bird_a8z;
+    Flash_Length_Splash;
   uint32_t
-    F_Sec_bi_cat_a8z;
+    Flash_Sector_Clouds;
   uint32_t
-    F_Len_bi_cat_a8z;
+    Flash_Length_Clouds;
   uint32_t
-    F_Sec_bi_dog_a8z;
+    Flash_Sector_ICE_FPV_512x300;
   uint32_t
-    F_Len_bi_dog_a8z;
-  uint32_t
-    F_Sec_bi_horse_a8z;
-  uint32_t
-    F_Len_bi_horse_a8z;
-  uint32_t
-    F_Sec_bs_bird_a8z;
-  uint32_t
-    F_Len_bs_bird_a8z;
-  uint32_t
-    F_Sec_bs_cat_a8z;
-  uint32_t
-    F_Len_bs_cat_a8z;
-  uint32_t
-    F_Sec_bs_dog_a8z;
-  uint32_t
-    F_Len_bs_dog_a8z;
-  uint32_t
-    F_Sec_bs_horse_a8z;
-  uint32_t
-    F_Len_bs_horse_a8z;
-  uint32_t
-    F_Sec_i_bat_0_a8z;
-  uint32_t
-    F_Len_i_bat_0_a8z;
-  uint32_t
-    F_Sec_i_bat_1_a8z;
-  uint32_t
-    F_Len_i_bat_1_a8z;
-  uint32_t
-    F_Sec_i_bat_2_a8z;
-  uint32_t
-    F_Len_i_bat_2_a8z;
-  uint32_t
-    F_Sec_i_bat_3_a8z;
-  uint32_t
-    F_Len_i_bat_3_a8z;
-  uint32_t
-    F_Sec_i_bat_4_a8z;
-  uint32_t
-    F_Len_i_bat_4_a8z;
-  uint32_t
-    F_Sec_i_bat_5_a8z;
-  uint32_t
-    F_Len_i_bat_5_a8z;
-  uint32_t
-    F_Sec_i_disk_a8z;
-  uint32_t
-    F_Len_i_disk_a8z;
-  uint32_t
-    F_Sec_i_fold_a8z;
-  uint32_t
-    F_Len_i_fold_a8z;
-  uint32_t
-    F_Sec_i_gear_a8z;
-  uint32_t
-    F_Len_i_gear_a8z;
-  uint32_t
-    F_Sec_i_home_a8z;
-  uint32_t
-    F_Len_i_home_a8z;
+    Flash_Length_ICE_FPV_512x300;
   DBG_GEEK("Writing flash BLOB to flash sector %ld . . . ",*Flash_Sector);
   //Write_BLOB_to_Flash_Sector_0() needs to know where unused RAM_G
   //starts so it does not overwrite anything, but only uses RAM_G
@@ -159,226 +98,78 @@ uint16_t Initialize_Flash_From_uSD(uint16_t FWol,
   // size. The 8x8 works fine and still looks great.
   // Since ATSC is already compressed, zlib does not do much, but
   // the uSD is slow and the decompression is free thanks to the EVE.
+  DBG_GEEK("Writing \"bluemarb.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
+  Flash_Sector_Marble=*Flash_Sector;
   //Write_uSD_File_To_Flash() needs to know where unused RAM_G
   //starts so it does not overwrite anything, but only uses RAM_G
   //temporarily, so it does not change RAM_G_Unused_Start.
-
-  
-  DBG_GEEK("Writing \"backgrnd.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_backgrnd_a8z=*Flash_Sector;
   FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "backgrnd.a8z",
+                                 "bluemarb.a8z",
                                  RAM_G_Unused_Start,
                                  Flash_Sector,
-                                 &F_Len_backgrnd_a8z);
+                                 &Flash_Length_Marble);
   DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bi_bird.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bi_bird_a8z=*Flash_Sector;
+  DBG_GEEK("Writing \"splash.a8z\" to flash sector %ld . . . ",*Flash_Sector);
+  Flash_Sector_Splash=*Flash_Sector;
+  //Write_uSD_File_To_Flash() needs to know where unused RAM_G
+  //starts so it does not overwrite anything, but only uses RAM_G
+  //temporarily, so it does not change RAM_G_Unused_Start.
   FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bi_bird.a8z",
+                                 "splash.a8z",
                                  RAM_G_Unused_Start,
                                  Flash_Sector,
-                                 &F_Len_bi_bird_a8z);
+                                 &Flash_Length_Splash);
   DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bi_cat.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bi_cat_a8z=*Flash_Sector;
+  DBG_GEEK("Writing \"cloud.a8z\" to flash sector %ld . . . ",*Flash_Sector);
+  Flash_Sector_Clouds=*Flash_Sector;
+  //Write_uSD_File_To_Flash() needs to know where unused RAM_G
+  //starts so it does not overwrite anything, but only uses RAM_G
+  //temporarily, so it does not change RAM_G_Unused_Start.
   FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bi_cat.a8z",
+                                 "cloud.a8z",
                                  RAM_G_Unused_Start,
                                  Flash_Sector,
-                                 &F_Len_bi_cat_a8z);
+                                 &Flash_Length_Clouds);
   DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bi_dog.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bi_dog_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bi_dog.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bi_dog_a8z);
+  //RAM_G is only one MB, so we need to move the uncompressed file
+  //directly from uSD to the flash.
+  DBG_GEEK("Writing \"ICE_400.avi\" to flash sector %ld . . . ",*Flash_Sector);
+  Flash_Sector_ICE_FPV_512x300=*Flash_Sector;
+  //Write_uSD_File_To_Flash() needs to know where unused RAM_G
+  //starts so it does not overwrite anything, but only uses RAM_G
+  //temporarily, so it does not change RAM_G_Unused_Start.
+  FWol=Write_uSD_File_To_Flash(FWol,
+                               "ICE_400.avi",
+                               RAM_G_Unused_Start,
+                               Flash_Sector,
+                               &Flash_Length_ICE_FPV_512x300);
   DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bi_horse.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bi_horse_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bi_horse.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bi_horse_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bs_bird.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bs_bird_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bs_bird.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bs_bird_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bs_cat.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bs_cat_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bs_cat.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bs_cat_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bs_dog.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bs_dog_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bs_dog.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bs_dog_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"bs_horse.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_bs_horse_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "bs_horse.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_bs_horse_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_0.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_0_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_0.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_0_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_1.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_1_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_1.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_1_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_2.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_2_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_2.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_2_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_3.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_3_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_3.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_3_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_4.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_4_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_4.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_4_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_bat_5.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_bat_5_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_bat_5.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_bat_5_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_disk.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_disk_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_disk.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_disk_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_fold.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_fold_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_fold.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_fold_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_gear.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_gear_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_gear.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_gear_a8z);
-  DBG_GEEK("done.\n");
-  
-  DBG_GEEK("Writing \"i_home.a8z\" to flash sector = %ld . . . ",*Flash_Sector);
-  F_Sec_i_home_a8z=*Flash_Sector;
-  FWol=Inflate_uSD_File_To_Flash(FWol,
-                                 "i_home.a8z",
-                                 RAM_G_Unused_Start,
-                                 Flash_Sector,
-                                 &F_Len_i_home_a8z);
-  DBG_GEEK("done.\n");
-
+//  DBG_GEEK("Writing \"BBB_1024.avz\" to flash sector 0x%04lX = %ld . . . ",*Flash_Sector);
+//  Flash_Sector_BBB1024x600=*Flash_Sector;
+//  //Write_uSD_File_To_Flash() needs to know where unused RAM_G
+//  //starts so it does not overwrite anything, but only uses RAM_G
+//  //temporarily, so it does not change RAM_G_Unused_Start.
+//  FWol=Inflate_uSD_File_To_Flash(FWol,
+//                                 "BBB_1024.avz",
+//                                 RAM_G_Unused_Start,
+//                                 Flash_Sector,
+//                                 &Flash_Length_BBB1024x600);
+//  DBG_GEEK("done.\n");
   //Dump the flash sectors to the console, so we can copy those into the source
   //and use them to access the flash. Yes, I realize this is hokey, properly
   //we could write some kind of file system or at least a directory to the flash.
-  DBG_STAT("\n#define F_SEC_BACKGRND_A8Z  (%ldUL)\n",F_Sec_backgrnd_a8z);
-  DBG_STAT("#define F_LEN_BACKGRND_A8Z  (%ldUL) // sectors: %ld\n",F_Len_backgrnd_a8z,(F_Len_backgrnd_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BI_BIRD_A8Z   (%ldUL)\n",F_Sec_bi_bird_a8z);
-  DBG_STAT("#define F_LEN_BI_BIRD_A8Z   (%ldUL) // sectors: %ld\n",F_Len_bi_bird_a8z,(F_Len_bi_bird_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BI_CAT_A8Z    (%ldUL)\n",F_Sec_bi_cat_a8z);
-  DBG_STAT("#define F_LEN_BI_CAT_A8Z    (%ldUL) // sectors: %ld\n",F_Len_bi_cat_a8z,(F_Len_bi_cat_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BI_DOG_A8Z    (%ldUL)\n",F_Sec_bi_dog_a8z);
-  DBG_STAT("#define F_LEN_BI_DOG_A8Z    (%ldUL) // sectors: %ld\n",F_Len_bi_dog_a8z,(F_Len_bi_dog_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BI_HORSE_A8Z  (%ldUL)\n",F_Sec_bi_horse_a8z);
-  DBG_STAT("#define F_LEN_BI_HORSE_A8Z  (%ldUL) // sectors: %ld\n",F_Len_bi_horse_a8z,(F_Len_bi_horse_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BS_BIRD_A8Z   (%ldUL)\n",F_Sec_bs_bird_a8z);
-  DBG_STAT("#define F_LEN_BS_BIRD_A8Z   (%ldUL) // sectors: %ld\n",F_Len_bs_bird_a8z,(F_Len_bs_bird_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BS_CAT_A8Z    (%ldUL)\n",F_Sec_bs_cat_a8z);
-  DBG_STAT("#define F_LEN_BS_CAT_A8Z    (%ldUL) // sectors: %ld\n",F_Len_bs_cat_a8z,(F_Len_bs_cat_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BS_DOG_A8Z    (%ldUL)\n",F_Sec_bs_dog_a8z);
-  DBG_STAT("#define F_LEN_BS_DOG_A8Z    (%ldUL) // sectors: %ld\n",F_Len_bs_dog_a8z,(F_Len_bs_dog_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_BS_HORSE_A8Z  (%ldUL)\n",F_Sec_bs_horse_a8z);
-  DBG_STAT("#define F_LEN_BS_HORSE_A8Z  (%ldUL) // sectors: %ld\n",F_Len_bs_horse_a8z,(F_Len_bs_horse_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_0_A8Z   (%ldUL)\n",F_Sec_i_bat_0_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_0_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_0_a8z,(F_Len_i_bat_0_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_1_A8Z   (%ldUL)\n",F_Sec_i_bat_1_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_1_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_1_a8z,(F_Len_i_bat_1_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_2_A8Z   (%ldUL)\n",F_Sec_i_bat_2_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_2_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_2_a8z,(F_Len_i_bat_2_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_3_A8Z   (%ldUL)\n",F_Sec_i_bat_3_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_3_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_3_a8z,(F_Len_i_bat_3_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_4_A8Z   (%ldUL)\n",F_Sec_i_bat_4_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_4_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_4_a8z,(F_Len_i_bat_4_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_BAT_5_A8Z   (%ldUL)\n",F_Sec_i_bat_5_a8z);
-  DBG_STAT("#define F_LEN_I_BAT_5_A8Z   (%ldUL) // sectors: %ld\n",F_Len_i_bat_5_a8z,(F_Len_i_bat_5_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_DISK_A8Z    (%ldUL)\n",F_Sec_i_disk_a8z);
-  DBG_STAT("#define F_LEN_I_DISK_A8Z    (%ldUL) // sectors: %ld\n",F_Len_i_disk_a8z,(F_Len_i_disk_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_FOLD_A8Z    (%ldUL)\n",F_Sec_i_fold_a8z);
-  DBG_STAT("#define F_LEN_I_FOLD_A8Z    (%ldUL) // sectors: %ld\n",F_Len_i_fold_a8z,(F_Len_i_fold_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_GEAR_A8Z    (%ldUL)\n",F_Sec_i_gear_a8z);
-  DBG_STAT("#define F_LEN_I_GEAR_A8Z    (%ldUL) // sectors: %ld\n",F_Len_i_gear_a8z,(F_Len_i_gear_a8z+4095)>>12);
-  DBG_STAT("#define F_SEC_I_HOME_A8Z    (%ldUL)\n",F_Sec_i_home_a8z);
-  DBG_STAT("#define F_LEN_I_HOME_A8Z    (%ldUL) // sectors: %ld\n",F_Len_i_home_a8z,(F_Len_i_home_a8z+4095)>>12);
- 
-  DBG_STAT("//Total sectors = 4096, free sectors = %ld\n",4096UL - (F_Sec_i_home_a8z+((F_Len_i_home_a8z+4095)>>12)));
-  DBG_STAT("//Total flash = 16777216, free flash = %ld\n\n",16777216UL - ((F_Sec_i_home_a8z+((F_Len_i_home_a8z+4095)>>12))<<12));
+  DBG_STAT("\n#define FLASH_SECTOR_MARBLE (%ldUL)\n",Flash_Sector_Marble);
+  DBG_STAT("#define FLASH_LENGTH_MARBLE (%ldUL) // sectors: %ld\n",Flash_Length_Marble,Flash_Length_Marble>>12);
+  DBG_STAT("#define FLASH_SECTOR_SPLASH (%ldUL)\n",Flash_Sector_Splash);
+  DBG_STAT("#define FLASH_LENGTH_SPLASH (%ldUL) // sectors: %ld\n",Flash_Length_Splash,Flash_Length_Splash>>12);
+  DBG_STAT("#define FLASH_SECTOR_CLOUDS (%ldUL)\n",Flash_Sector_Clouds);
+  DBG_STAT("#define FLASH_LENGTH_CLOUDS (%ldUL) // sectors: %ld\n",Flash_Length_Clouds,Flash_Length_Clouds>>12);
+  DBG_STAT("#define FLASH_SECTOR_ICE_FPV_512x300 (%ldUL)\n",Flash_Sector_ICE_FPV_512x300);
+  DBG_STAT("#define FLASH_LENGTH_ICE_FPV_512x300 (%ldUL) // sectors: %ld\n",Flash_Length_ICE_FPV_512x300,Flash_Length_ICE_FPV_512x300>>12);
+  DBG_STAT("//Total sectors = 4096, free sectors = %ld\n",4096UL - (Flash_Sector_ICE_FPV_512x300+((Flash_Length_ICE_FPV_512x300+4095)>>12)));
+  DBG_STAT("//Total flash = 16777216, free flash = %ld\n\n",16777216UL - ((Flash_Sector_ICE_FPV_512x300+((Flash_Length_ICE_FPV_512x300+4095)>>12))<<12));
+//  DBG_STAT("#define FLASH_SECTOR_BBB1024x600 (%ldUL)\n",Flash_Sector_BBB1024x600);
+//  DBG_STAT("#define FLASH_LENGTH_BBB1024x600 (%ldUL)\n\n",Flash_Length_BBB1024x600);
   //Give the updated write pointer back to the caller
   return(FWol);
   }
@@ -411,410 +202,53 @@ uint16_t Add_Touch_Dot_To_Display_List(uint16_t FWol,
 #endif //TOUCH_DEMO
 //===========================================================================
 #if (0 != BMP_DEMO)
+//For a static background image, set BMP_SCROLL to 0
+//We will select the file name based on that.
 
-//The images are in flash. Initialize_Bitmap_Demo() will copy them into
-//RAM_G, storing the RAM_G addresses here.
+//Address of the 565 bitmap image in RAM_G
+//uint32_t
+//  Bitmap_RAM_G_Address;
 
-// All this stuff should be properly done with an array of structures.
-// The structure should hold the flash sector, RAM_G addressm, x&y size
-// and position etc. That way all this silly linear code could be done
-// as loops.
-
-uint32_t
-  RAM_G_bi_bird_a8z;
-uint32_t
-  RAM_G_bi_cat_a8z;
-uint32_t
-  RAM_G_bi_dog_a8z;
-uint32_t
-  RAM_G_bi_horse_a8z;
-uint32_t
-  RAM_G_bs_bird_a8z;
-uint32_t
-  RAM_G_bs_cat_a8z;
-uint32_t
-  RAM_G_bs_dog_a8z;
-uint32_t
-  RAM_G_bs_horse_a8z;
-uint32_t
-  RAM_G_i_bat_0_a8z;
-uint32_t
-  RAM_G_i_bat_1_a8z;
-uint32_t
-  RAM_G_i_bat_2_a8z;
-uint32_t
-  RAM_G_i_bat_3_a8z;
-uint32_t
-  RAM_G_i_bat_4_a8z;
-uint32_t
-  RAM_G_i_bat_5_a8z;
-uint32_t
-  RAM_G_i_disk_a8z;
-uint32_t
-  RAM_G_i_fold_a8z;
-uint32_t
-  RAM_G_i_gear_a8z;
-uint32_t
-  RAM_G_i_home_a8z;
-  
+//Keep track of where the background is as it slides around in a loop
+int16_t
+  background_slide;
+uint8_t
+  background_slide_slow;
+uint8_t
+  background_bitmap_handle;
 //---------------------------------------------------------------------------
 uint16_t Initialize_Bitmap_Demo(uint16_t FWol,
-                                uint32_t *RAM_G_Unused_Start)
+                                //uint32_t *RAM_G_Unused_Start,
+                                uint8_t next_bitmap_handle_available)
   {
-  //5.79 CMD_FLASHREAD
-  //This command reads data from flash into main memory.
-  // void cmd_flashread(uint32_t dest,
-  //                    uint32_t src,
-  //                    uint32_t num);
-  // void Gpu_CoCmd_FlashRead(Gpu_Hal_Context_t *phost,uint32_t dest, uint32_t src, uint32_t num)
-  //   {
-  //   Gpu_CoCmd_StartFunc(phost,CMD_SIZE*4);
-  //   Gpu_Copro_SendCmd(phost, CMD_FLASHREAD);
-  //   Gpu_Copro_SendCmd(phost, dest);
-  //   Gpu_Copro_SendCmd(phost, src);
-  //   Gpu_Copro_SendCmd(phost, num);
-  //   Gpu_CoCmd_EndFunc(phost,(CMD_SIZE*4));
-  //   }
-  DBG_GEEK("\nCopy \"bi_bird.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bi_bird_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bi_bird_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BI_BIRD_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BI_BIRD_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BI_BIRD_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
+  //Keep track of our bitmap handle
+  background_bitmap_handle=next_bitmap_handle_available;
+    
+  //Start the slide at position 0.
+  background_slide=0;
+  background_slide_slow=0;
 
-  DBG_GEEK("Copy \"bi_cat.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bi_cat_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bi_cat_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BI_CAT_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BI_CAT_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BI_CAT_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bi_dog.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bi_dog_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bi_dog_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BI_DOG_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BI_DOG_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BI_DOG_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bi_horse.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bi_horse_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bi_horse_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BI_HORSE_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BI_HORSE_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BI_HORSE_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bs_bird.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bs_bird_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bs_bird_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BS_BIRD_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BS_BIRD_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BS_BIRD_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bs_cat.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bs_cat_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bs_cat_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BS_CAT_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BS_CAT_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BS_CAT_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bs_dog.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bs_dog_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bs_dog_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BS_DOG_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BS_DOG_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BS_DOG_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"bs_horse.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_bs_horse_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_bs_horse_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_BS_HORSE_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_BS_HORSE_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_BS_HORSE_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-
-
-  DBG_GEEK("Copy \"i_bat_0.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_0_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_0_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_0_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_0_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_0_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_bat_1.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_1_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_1_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_1_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_1_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_1_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_bat_2.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_2_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_2_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_2_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_2_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_2_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_bat_3.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_3_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_3_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_3_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_3_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_3_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_bat_4.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_4_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_4_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_4_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_4_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_4_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_bat_5.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_bat_5_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_bat_5_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_BAT_5_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_BAT_5_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_BAT_5_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_disk.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_disk_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_disk_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_DISK_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_DISK_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_DISK_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_fold.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_fold_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_fold_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_FOLD_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_FOLD_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_FOLD_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_gear.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_gear_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_gear_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_GEAR_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_GEAR_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_GEAR_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  DBG_GEEK("Copy \"i_home.a8z\" from flash to RAM_G start: %lu",*RAM_G_Unused_Start);
-  //Remember where it is.
-  RAM_G_i_home_a8z=*RAM_G_Unused_Start;
-  //You have to know ahead of time how big the image is and what
-  //format it is in. EVE_Load_File_To_RAM_G just moves the data.
-  FWol=EVE_Cmd_Dat_3(FWol,
-                     EVE_ENC_CMD_FLASHREAD,
-                     // destination in RAM_G, must be 4-byte aligned
-                     RAM_G_i_home_a8z,
-                     // source in flash, must be 64-byte aligned
-                     (F_SEC_I_HOME_A8Z)<<12,
-                     // number of bytes to write, must be 4-byte aligned
-                     F_LEN_I_HOME_A8Z);
-  *RAM_G_Unused_Start+=F_LEN_I_HOME_A8Z;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
-
-  // Update the ring buffer pointer so the graphics processor starts executing
-  EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
-
-  //Pass our updated offset back to the caller
   return(FWol);
   }
 //---------------------------------------------------------------------------
-uint16_t Add_RAM_G_Bitmap_To_Display_List(uint16_t FWol,
-                                          uint32_t handle,
-                                          uint32_t x_pos,
-                                          uint32_t y_pos,
-                                          uint32_t x_siz,
-                                          uint32_t y_siz,
-                                          uint32_t ram_g_address,
-                                          uint32_t image_format)
+uint16_t Add_Bitmap_To_Display_List(uint16_t FWol)
   {
-  //Make sure the EVE has the idea of which bitmap it
-  //should be working on.
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_BITMAP_HANDLE(handle));
-  // Set the drawing color to white
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF));
-  //Solid color -- not transparent
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_COLOR_A(255));
-  //Pull the image from RAM_G onto the screen
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
-  FWol=RAMG_SETBITMAP(FWol,ram_g_address,image_format,x_siz,y_siz);
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
-  //Render the bitmap it to the current frame
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_VERTEX2F((x_pos*16),(y_pos*16)));
-  FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_END());                       
-  return(FWol);
-  }
-//---------------------------------------------------------------------------
-uint16_t Add_Flash_Bitmap_To_Display_List(uint16_t FWol,
-                                          uint32_t handle,
-                                          uint32_t x_pos,
-                                          uint32_t y_pos,
-                                          uint32_t x_siz,
-                                          uint32_t y_siz,
-                                          uint32_t flash_sector,
-                                          uint32_t image_format)
-  {
-  //Pull the ASTC image from flash onto the screen
+  //We have a LCD_WIDTHxLCD_HEIGHT (1026x600) ATSC image in the flash.
+  //The particular image we have is seemlessly tileable in x -- letting
+  //us make a continuous scenery wheel scroll of the background
+  int16_t
+    tile_offset;
+
+#if (0==BMP_SCROLL) //1 for scroll, 0 for static bitmap
+  background_slide=LCD_WIDTH;
+#endif // (0==BMP_SCROLL)
+
+  //We will loop background_slide from 0 to LCD_WIDTH-1
+  //The first tile starts at up to LCD_WIDTH pixels to the left of the visible
+  //display.
+  tile_offset=background_slide-LCD_WIDTH;
+
+  //First tile: pull the ASTC image from flash onto the screen
 
   // Set the drawing color to white
   FWol=EVE_Cmd_Dat_0(FWol,
@@ -825,16 +259,49 @@ uint16_t Add_Flash_Bitmap_To_Display_List(uint16_t FWol,
   //Make sure the EVE has the idea of which bitmap it
   //should be working on.
   FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_BITMAP_HANDLE(handle));
-  FWol=FLASH_SETBITMAP(FWol,flash_sector,image_format,x_siz,y_siz);
-
+                     EVE_ENC_BITMAP_HANDLE(background_bitmap_handle));
+#if (0==BMP_SCROLL) //1 for scroll, 0 for static bitmap
+  FWol=FLASH_SETBITMAP(FWol,FLASH_SECTOR_SPLASH,EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR,1024,600);
+#else // (0==BMP_SCROLL) //1 for scroll, 0 for static bitmap
+  FWol=FLASH_SETBITMAP(FWol,FLASH_SECTOR_CLOUDS,EVE_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR,1024,600);
+#endif // (0==BMP_SCROLL) //1 for scroll, 0 for static bitmap
   FWol=EVE_Cmd_Dat_0(FWol,
                      EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
   //Render the bitmap it to the current frame
   FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_VERTEX2F((x_pos*16),(y_pos*16)));
+                     EVE_ENC_VERTEX2F((tile_offset)*16,0*16));
   FWol=EVE_Cmd_Dat_0(FWol,
                      EVE_ENC_END());
+
+#if (1==BMP_SCROLL) //1 for scroll, 0 for static bitmap
+  //Second tile, move over LCD_WIDTH pixels.
+  tile_offset+=LCD_WIDTH;
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
+  //Render the bitmap it to the current frame
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_VERTEX2F((tile_offset)*16,0*16));
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_END());
+
+  //Slide the background along at 1/3 frame rate ~20Hz
+  if(0==background_slide_slow)
+    {
+    background_slide_slow=2;
+    if(background_slide < LCD_WIDTH)
+      {
+      background_slide++;
+      }
+    else
+      {
+      background_slide=0;
+      }
+    }
+  else
+    {
+    background_slide_slow--;
+    }
+#endif // (1==BMP_SCROLL)
 
   //Pass our updated offset back to the caller
   return(FWol);
@@ -912,7 +379,7 @@ uint16_t Initialize_Marble_Demo(uint16_t FWol,
                      FLASH_LENGTH_MARBLE);
 
   *RAM_G_Unused_Start+=FLASH_LENGTH_MARBLE;
-  DBG_GEEK(" end: %lu\n",(*RAM_G_Unused_Start)-1);
+  DBG_GEEK(" end: %lu\n",*RAM_G_Unused_Start);
 
   // Update the ring buffer pointer so the graphics processor starts executing
   EVE_REG_Write_16(EVE_REG_CMD_WRITE, (FWol));
@@ -938,14 +405,17 @@ uint16_t Add_Marble_To_Display_List(uint16_t FWol)
                      EVE_ENC_BITMAP_HANDLE(marble_bitmap_handle));
   // Set the drawing color to white
   FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF));
+                       EVE_ENC_COLOR_RGB(0xFF,0xFF,0xFF));
   //Solid color -- not transparent
   FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_COLOR_A(255));
+                       EVE_ENC_COLOR_A(255));
 
   //Pull the uncompressed bitmap from RAM_G onto the screen
   FWol=EVE_Cmd_Dat_0(FWol,
-                     EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
+                       EVE_ENC_BEGIN(EVE_BEGIN_BITMAPS));
+
+  FWol=EVE_Cmd_Dat_0(FWol,
+                     EVE_ENC_BITMAP_HANDLE(11));
 
   FWol=EVE_Cmd_Dat_3(FWol,
                      EVE_ENC_CMD_SETBITMAP,
