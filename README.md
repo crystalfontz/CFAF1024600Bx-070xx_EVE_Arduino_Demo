@@ -69,7 +69,7 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 ## Additional Accessories
 Additional accessories for the products can be found at the bottom of each of the product pages. This will include 30 position FFC cables, wires, and any accessory boards that are available.
 
-## Flash Opperation
+## Flash Operation
 to program the built in W25Q128JVPIQ flash, set PROGRAM_FLASH_FROM_USD to (1). The program is designed to take a file called splash.a8z, bluemarb.a8z, and/or cloud.a8z.
 
 Demo files can be found in "CFA10108\uSD_Files". 
