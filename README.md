@@ -91,3 +91,5 @@ To create an *.a8z file, following the below steps.
 7. Use the Serial monitor to get the values shown on lines 96-103 of CFA10108_defines.h
 8. Update lines 96-103 of CFA10108_defines.h with the new values and change PROGRAM_FLASH_FROM_USD = 0
 9. The data is stored in flash and will now show when the demos are turned on
+
+For an in-depth guide to loading custom images on our EVE lineup of displays without an SD card (using the Seeeduino's flash memory), please refer to our blog post [available here](https://www.crystalfontz.com/blog/custom-images-on-eve-displays/).
