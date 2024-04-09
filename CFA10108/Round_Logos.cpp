@@ -6,7 +6,7 @@
 //===========================================================================
 #if (1==LOGO_PNG_0_ARGB2_1)
 
-//Source Binary file: ".\Asset_Builder_Output\CFAF800480Ex-050Sx-A2_Splash_340x340_ARGB2.bin"
+//Source Binary file: ".\Asset_Builder_Output\CFAM1024600xx-070T_Splash_340x340_ARGB2.bin"
 const uint8_t CFAM1024600xx_070S_ARGB2_LOGO[LOGO_SIZE_ARGB2] PROGMEM =
   {
     0x78, 0x9c, 0xed, 0x9a, 0x6b, 0x92, 0xac, 0x36, 0x0c, 0x46, 0x97, 0xc6, 0xd6, 

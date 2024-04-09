@@ -3,8 +3,8 @@
 // Crystalfontz Seeeduino / Arduino Simple Demonstration Program
 // for FTDI / BridgeTek EVE graphic accelerators.
 //
-// Code written for Seeeduino v4.2 set to 3.3v (important!)
-// Seeeduino v4.2 is an Arduino Uno clone that can run at 3.3v.
+// Code written for Seeeduino set to 3.3v (important!)
+// Seeeduino is an Arduino Uno clone that can run logic at 3.3v.
 //
 //---------------------------------------------------------------------------
 //
@@ -28,10 +28,10 @@
 // Plus, you probably don't have RAM and flash for all those fancy
 // programming layers.
 //
-// The FTDI write offset (FWo) into the FT813's circular write write buffer
+// The FTDI write offset (FWo) into the EVE's circular write write buffer
 // is passed into and back from functions (FWol = FWo local) rather than being
 // a global. Keeping track of the write offset avoids having to read that
-// information from the FT813 before every SPI transaction.
+// information from the EVE before every SPI transaction.
 //
 // A nod to Rudolph R and company over at
 //   https://www.mikrocontroller.net/topic/395608
@@ -204,6 +204,7 @@ void loop()
   flash_status = EVE_REG_Read_8(EVE_REG_FLASH_STATUS);
   DBG_GEEK_Decode_Flash_Status(flash_status);
 #if (0 != PROGRAM_FLASH_FROM_USD)
+  DBG_GEEK("Programming flash.\n");
   //Keep track of the current write pointer into flash.
   uint32_t
     Flash_Sector;

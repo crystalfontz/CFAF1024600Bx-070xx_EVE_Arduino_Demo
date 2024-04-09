@@ -3,7 +3,7 @@
 //============================================================================
 //
 // Definitions specific to the EVE accelerated CFA10108 board.
-// (cap-touch) https://www.crystalfontz.com/product/ . . .
+// (cap-touch) https://www.crystalfontz.com/product/cfaf1024600b0070sca1
 //
 // 2022-02-28 Brent A. Crosby / Crystalfontz America, Inc.
 // https://www.crystalfontz.com/products/eve-accelerated-tft-displays.php
@@ -49,7 +49,7 @@
 // we can load elements into the flash from the uSD (once) and then we
 // do not need the uSD any more. Elements could also be loaded into the
 // flash by using some PC host and the Eve Asset Builder tools provided by
-// Bridgetek. Some elements can then be displated directly from flash, other
+// Bridgetek. Some elements can then be displayed directly from flash, other
 // elements (notably the rotating blue marble) need to be copied to the
 // faster RAM_G before dispalying them.
 //
@@ -65,8 +65,8 @@
 // be removed.
 //
 #define PROGRAM_FLASH_FROM_USD (0)  //uses uSD
-
-
+//
+//
 #if (0 == PROGRAM_FLASH_FROM_USD)
 // Some combinations of demos and debug messages may overflow the
 // Seeeduino / Arduino flash. The symptom will be a programming error
@@ -81,20 +81,20 @@
 #define   SOUND_PLAY_TIMES   (1)
 #define LOGO_DEMO            (1)  //Rotating logo (the PNG or ARGB image
                                   //data is stored in the Seeeduino's flash)
-#define   LOGO_PNG_0_ARGB2_1   (1)  //Compressed ARGB is 5408 bytes smaller
-#define BOUNCE_DEMO          (1)  //Ball-and-rubber-band demo.
+#define LOGO_PNG_0_ARGB2_1   (1)  //Compressed ARGB is 5408 bytes smaller
+#define BOUNCE_DEMO          (0)  //Ball-and-rubber-band demo.
 #define MARBLE_DEMO          (1)  //Marble must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(bluemarb.a8z)
 #define TOUCH_DEMO           (1)
-#define VIDEO_DEMO           (0)  //Video must already be programmed into
+#define VIDEO_DEMO           (1)  //Video must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(Ice_400.avi)
 //
 // These should have been copied from the debug console when
 // you built with PROGRAM_FLASH_FROM_USD set
 #define FLASH_SECTOR_MARBLE (1UL)
-#define FLASH_LENGTH_MARBLE (14400UL)  // sectors: 3
+#define FLASH_LENGTH_MARBLE (14400UL)  // sectors: 4
 #define FLASH_SECTOR_SPLASH (5UL)
 #define FLASH_LENGTH_SPLASH (153600UL) // sectors: 37
 #define FLASH_SECTOR_CLOUDS (43UL)
@@ -117,7 +117,7 @@
 #define LOGO_DEMO            (0)  //Rotating logo (the PNG or ARGB image
                                   //data is stored in the Seeeduino's flash)
 #define LOGO_PNG_0_ARGB2_1   (0)  //Compressed ARGB is 5408 bytes smaller
-#define BOUNCE_DEMO          (0)  //Ball-and-rubber-band demo.
+#define BOUNCE_DEMO          (1)  //Ball-and-rubber-band demo.
 #define MARBLE_DEMO          (0)  //Marble must already be programmed into
                                   //flash by using PROGRAM_FLASH_FROM_USD
                                   //(bluemarb.a8z)
@@ -143,13 +143,13 @@
   #define BUILD_SD           (0)
 #endif
 //============================================================================
-// Wiring for Seeeduino v4.2 (3.3v) connected to CFA10098 breakout for testing.
+// Wiring for Seeeduino (3.3v) connected to CFA10098 breakout for testing.
 //   ARD      | Port | 10098/EVE           | Color
 // -----------+------+---------------------|--------
 //  #3/D3     |  PD3 | DEBUG_LED           | Green W/W
 //  #7/D7     |  PD7 | EVE_INT             | Purple
 //  #8/D8     |  PB0 | EVE_PD_NOT          | Blue
-//  #9/D9     |  PB1 | EVE_CS_NOT         | Brown
+//  #9/D9     |  PB1 | EVE_CS_NOT          | Brown
 // #10/D10    |  PB2 | SD_CS_NOT           | Grey
 // #11/D11    |  PB3 | MOSI (hardware SPI) | Yellow
 // #12/D12    |  PB4 | MISO (hardware SPI) | Green
@@ -265,14 +265,14 @@
 //----------------------------------------------------------------------------
 // Frame_Rate = 60Hz / 16.7mS
 //----------------------------------------------------------------------------
-// Horizontal timing (minimum values from ILI6122_SPEC_V008.pdf page 45)
+// Horizontal timing (minimum values from EK7900_v1.1.pdf page 26)
 // Target 60Hz frame rate, using the largest possible line time in order to
 // maximize the time that the EVE has to process each line.
 #define HPX   (1024)  // Horizontal Pixel Width
-#define HSW   (1)     // Horizontal Sync Width (1~40)
-#define HBP   (160)   // Horizontal Back Porch (must be 46, includes HSW)
-#define HFP   (16)    // Horizontal Front Porch (16~210~354)
-#define HPP   (396)   // Horizontal Pixel Padding (tot=863: 862~1056~1200)
+#define HSW   (1)     // Horizontal Sync Width (1~140)
+#define HBP   (160)   // Horizontal Back Porch
+#define HFP   (16)    // Horizontal Front Porch (16~160~216)
+#define HPP   (396)   // Horizontal Pixel Padding (calculate using Caclulation_of_Timing.xlsx)
                       // EVE needs at least 1 here
 // Define the constants needed by the EVE based on the timing
 // Active width of LCD display
@@ -286,10 +286,10 @@
 // Total number of clocks per line
 #define LCD_HCYCLE  (HPX+HFP+HSW+HBP+HPP)
 //----------------------------------------------------------------------------
-// Vertical timing (minimum values from ILI6122_SPEC_V008.pdf page 46)
+// Vertical timing (minimum values from EK7900_v1.1.pdf page 27)
 #define VLH   (600)   // Vertical Line Height
 #define VS    (1)     // Vertical Sync (in lines)  (1~20)
-#define VBP   (23)    // Vertical Back Porch (must be 23, includes VS)
+#define VBP   (32)    // Vertical Back Porch (must be 23, includes VS)
 #define VFP   (1)     // Vertical Front Porch (7~22~147)
 #define VLP   (1)     // Vertical Line Padding (tot=511: 510~525~650)
                       // EVE needs at least 1 here
