@@ -15,6 +15,7 @@ Full Functional Seeeduino Demo Kits for these products can be found here:
 
 To toggle on or off different demonstrations, some defines in "CFA10108_defines.h" can be changed.
 
+
 ```c++
 #define BMP_DEMO             (0)  
 #define   BMP_SCROLL         (0)  
@@ -26,6 +27,7 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 #define BOUNCE_DEMO          (1)  
 #define MARBLE_DEMO          (0)  
 #define TOUCH_DEMO           (0)
+#define VIDEO_DEMO           (1) 
 ```
 
 `BMP_DEMO` - Toggled to 1 will look to the uSD card to pull the "SPLASH.RAW" file and display it \
@@ -33,7 +35,8 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 `LOGO_DEMO` - Toggled to 1 will display the Crystalfontz Logo from flash\
 `BOUNCE_DEMO` - Toggled to 1 will show a ball bouncing around the screen\
 `MARBLE_DEMO` - Toggled to 1 will look in the uSD card and pull "BLUEMARB.RAW" and demonstrate the earth rotating and bouncing around in screen in place of the ball\
-`TOUCH_DEMO` - Toggled to 1 will enable the touch screen (only compatible on touch versions of the display)
+`TOUCH_DEMO` - Toggled to 1 will enable the touch screen (only compatible on touch versions of the display)\
+`VIDEO_DEMO` - Toggled to 1 will enable the video demo. Video files "Ice_400.avi" must have been previsously loaded into flash.
 
 
 ## Connection Details
@@ -70,7 +73,7 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 Additional accessories for the products can be found at the bottom of each of the product pages. This will include 30 position FFC cables, wires, and any accessory boards that are available.
 
 ## Flash Operation
-to program the built in W25Q128JVPIQ flash, set PROGRAM_FLASH_FROM_USD to (1). The program is designed to take a file called splash.a8z, bluemarb.a8z, and/or cloud.a8z.
+to program the built in W25Q128JVPIQ flash, set PROGRAM_FLASH_FROM_USD to (1). The program is designed to take a file called splash.a8z, bluemarb.a8z, cloud.a8z, and/or ice.avi.
 
 Demo files can be found in "CFA10108\uSD_Files". 
 
@@ -87,7 +90,7 @@ To create an *.a8z file, following the below steps.
     * Select CONVERT
 4. Rename the *.bin file created to splash.a8z (or bluemarb.a8z or cloud.a8z depending on the demo)
 5. Load the splash.a8z file onto the uSD connected with the Seeeduino controlling the EVE display
-6. Run the program ensuring that PROGRAM_FLASH_FROM_USD = 1
+6. Run the program ensuring that PROGRAM_FLASH_FROM_USD = 1 (this may take a while)
 7. Use the Serial monitor to get the values shown on lines 96-103 of CFA10108_defines.h
 8. Update lines 96-103 of CFA10108_defines.h with the new values and change PROGRAM_FLASH_FROM_USD = 0
 9. The data is stored in flash and will now show when the demos are turned on
