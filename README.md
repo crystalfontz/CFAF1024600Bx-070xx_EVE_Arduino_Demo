@@ -60,14 +60,18 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 
 
 #### To Optional [uSD Adapter Board](https://www.crystalfontz.com/product/cfa10112) 
-| microSD Pin | Seeeduino Pin| Connection Description |
-|-------------|--------------|------------------------|
-| 1 (CS)      | D10          | SD CS                  |
-| 2 (DI)      | D11          | SD MOSI                |
-| 3 (DO)      | D12          | SD MISO                |
-| 4 (VDD)     | 3v3          | +3.3V Power            |
-| 5 (SCLK)    | D13          | SD SCLK                |
-| 6 (VSS)     | GND          | Ground                 |
+
+| microSD Pin   | Seeeduino Pin| Connection Description |
+|---------------|--------------|------------------------|
+| 1 (VCC)       | 3v3          | +3.3V Power            |
+| 2 (VSS)       | GND          | Ground                 |
+| 3 (CLK/SCLK)  | D13          | SD SCLK                |
+| 4 (DAT2/x)    | DNC          | Data 2                 |
+| 5 (DAT3/CS)   | D10          | SD CS                  |
+| 6 (CMD/DI)    | D11          | SD MOSI                |
+| 7 (DAT0/DO)   | D12          | SD MISO                |
+| 8 (DAT1/x)    | DNC          | Data 1                 |
+
 
 ## Additional Accessories
 Additional accessories for the products can be found at the bottom of each of the product pages. This will include 30 position FFC cables, wires, and any accessory boards that are available.
