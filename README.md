@@ -52,7 +52,7 @@ To toggle on or off different demonstrations, some defines in "CFA10108_defines.
 | 7  (GPIO1/D3)     | DNC          | GPIO1/D2               |
 | 8  (GND)          | GND or DNC   | Ground                 |
 | 9  (CS)           | D9           | Chip Select            |
-| 10 (INT)          | D7           | Interupt               |
+| 10 (INT)          | D7           | Interrupt              |
 | 11 (PD)           | D8           | Chip Power Down        |
 | 12 (MODE/GPIO2)   | DNC          | MODE/GPIO2             |
 | 13 (AUDIO)        | DNC          | Audio PWM              |
